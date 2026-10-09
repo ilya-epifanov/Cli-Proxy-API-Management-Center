@@ -10,6 +10,8 @@ import { logsApi } from '@/services/api/logs';
 import { versionApi } from '@/services/api/version';
 import { vertexApi } from '@/services/api/vertex';
 import { apiKeyUsageApi } from '@/services/api/apiKeyUsage';
+import { getServerCapabilities } from '@/services/api/capabilities';
+import { getUsageSeries, getUsageTotals } from '@/services/api/usageHistory';
 
 const spies: Array<{ mockRestore(): void }> = [];
 const mock = (
@@ -321,5 +323,41 @@ describe('v8 management API contracts', () => {
     expect(raw.mock.calls.at(-1)?.[0]).toBe('/config.yaml');
     await configFileApi.saveConfigYaml('config: yaml');
     expect(put.mock.calls.at(-1)?.slice(0, 2)).toEqual(['/config.yaml', 'config: yaml']);
+  });
+
+  test('fork capability and usage-history routes send RFC 3339 windows and the group dimension', async () => {
+    const get = mock('get', { config_writable: true, strategies: [] });
+    await getServerCapabilities();
+    expect(get).toHaveBeenLastCalledWith('/server/capabilities');
+
+    const window = { from: Date.UTC(2026, 9, 8, 22), to: Date.UTC(2026, 9, 9, 11) };
+    get.mockResolvedValue({
+      bucket: '1d',
+      group_by: 'auth_index',
+      from: '2026-10-08T22:00:00Z',
+      to: '2026-10-09T11:00:00Z',
+      series: [],
+    });
+    await getUsageSeries({
+      ...window,
+      bucket: '1d',
+      groupBy: 'auth_index',
+      timeZone: 'Europe/Amsterdam',
+    });
+    expect(get).toHaveBeenLastCalledWith('/observability/usage/series', {
+      params: {
+        from: '2026-10-08T22:00:00Z',
+        to: '2026-10-09T11:00:00Z',
+        bucket: '1d',
+        tz: 'Europe/Amsterdam',
+        group_by: 'auth_index',
+      },
+    });
+
+    get.mockResolvedValue({ from: '2026-10-08T22:00:00Z', to: '2026-10-09T11:00:00Z', rows: [] });
+    await getUsageTotals(window);
+    expect(get).toHaveBeenLastCalledWith('/observability/usage/totals', {
+      params: { from: '2026-10-08T22:00:00Z', to: '2026-10-09T11:00:00Z' },
+    });
   });
 });
