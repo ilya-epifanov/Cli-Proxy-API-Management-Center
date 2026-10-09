@@ -1,0 +1,38 @@
+/**
+ * Tokens added by the ai-api-proxy fork (docs/frontend-design.md §13.1).
+ * Imported after themes.scss. New fork modules use these and the theme's custom properties,
+ * never literal colours.
+ */
+
+/*
+ * Categorical series colours for stacked charts: slots 1-6 in this fixed order, then the
+ * neutral "other" fold. Slots are the dataviz reference palette; the order is its validated
+ * adjacent order, so a stack must use slots 1..n without gaps (usageModel.assignSeriesSlots).
+ *
+ * Validated with the dataviz skill's validate_palette.js (OKLab ΔE ×100, Machado 2009 CVD):
+ * - light, on #f0eee8 / #faf9f5 / #ffffff: adjacent CVD ≥ 9.1, normal vision ≥ 19.6, lightness
+ *   and chroma pass; slots 2-5 are below 3:1 on the panel, so every chart ships a legend with
+ *   values and a data table.
+ * - dark, on #1d1b18 / #151412: adjacent CVD ≥ 8.4, normal vision ≥ 19.3, all ≥ 3:1.
+ * - other vs slot 6 (its only neighbour): light CVD 11.6, normal 19.3, ≥ 3.29:1; dark CVD 10.4,
+ *   normal 18.4, ≥ 4.04:1. It is grey on purpose: it names no group.
+ */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-other: #86827c;
+}
+
+[data-theme='dark'] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-other: #7f7a74;
+}
