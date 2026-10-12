@@ -1564,7 +1564,8 @@
     }
   },
   "quota_management": {
-    "refreshed_seconds": "{{value}}초 전",
+    "refreshed_just_now": "방금",
+    "refreshed_under_minute": "<1분 전",
     "refreshed_minutes": "{{value}}분 전",
     "refreshed_hours": "{{value}} 전",
     "refreshed_title": "서버가 {{time}}에 읽음",

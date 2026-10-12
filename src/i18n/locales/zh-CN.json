@@ -1563,7 +1563,8 @@
     }
   },
   "quota_management": {
-    "refreshed_seconds": "{{value}} 秒前",
+    "refreshed_just_now": "刚刚",
+    "refreshed_under_minute": "不到 1 分钟前",
     "refreshed_minutes": "{{value}} 分钟前",
     "refreshed_hours": "{{value}} 前",
     "refreshed_title": "服务器读取于 {{time}}",
