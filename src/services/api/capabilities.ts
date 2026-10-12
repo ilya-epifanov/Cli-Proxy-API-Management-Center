@@ -85,3 +85,27 @@ export async function getServerCapabilities(): Promise<Capabilities> {
   }
   return parseCapabilities(payload);
 }
+
+let cachedCapabilities: { revision: number; value: Promise<Capabilities> } | null = null;
+
+/**
+ * Capabilities of the current connection, read once per connection revision. A failed read is
+ * not kept, so the next call tries again.
+ */
+export function getCachedServerCapabilities(): Promise<Capabilities> {
+  const revision = apiClient.getConnectionRevision();
+  if (cachedCapabilities?.revision !== revision) {
+    const value = getServerCapabilities();
+    cachedCapabilities = { revision, value };
+    value.catch(() => {
+      if (cachedCapabilities?.value === value) cachedCapabilities = null;
+    });
+  }
+  return cachedCapabilities.value;
+}
+
+/** True when the server reads Claude and Codex quota itself (fork, `observability.quota`). */
+export async function serverReadsQuota(): Promise<boolean> {
+  const capabilities = await getCachedServerCapabilities();
+  return capabilities.tag === 'fork' && capabilities.quotaCache;
+}

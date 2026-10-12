@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
+import { RefreshedAgo } from '@/features/quota/components/RefreshedAgo';
+import { refreshedAtOf } from '@/features/quota/serverQuota';
 import styles from './AuthFileQuota.module.scss';
 
 /** 认证文件卡片外衣：紧凑额度样式绑定成类型化契约（缺键在模块初始化即抛）。 */
@@ -157,6 +159,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
   ]);
 
   const quotaStatus = quota?.status ?? 'idle';
+  const refreshedAt = quotaStatus === 'success' ? refreshedAtOf(quota) : undefined;
   const canRefreshQuota = !disableControls && !file.disabled && !resettingQuota;
   const canUseResetQuota = canRefreshQuota && quotaStatus !== 'loading';
   const showResetQuotaAction = quota !== undefined && Boolean(adapter.canResetQuota?.(quota));
@@ -207,26 +210,28 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
       ) : (
         <div className={styles.quotaMessage}>{t(`${adapter.i18nPrefix}.idle`)}</div>
       )}
-      {quotaStatus !== 'idle' && (resetQuotaAction || quotaType === 'devin') && (
-        <div className={styles.quotaCardActions}>
-          {resetQuotaAction}
-          {quotaType === 'devin' && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className={styles.quotaResetCreditButton}
-              onClick={() => void refreshQuotaForFile()}
-              disabled={!canRefreshQuota || quotaStatus === 'loading'}
-              loading={quotaStatus === 'loading'}
-              title={t('auth_files.quota_refresh_hint')}
-            >
-              {quotaStatus !== 'loading' && <IconRefreshCw size={14} />}
-              {t('auth_files.quota_refresh_single')}
-            </Button>
-          )}
-        </div>
-      )}
+      {quotaStatus !== 'idle' &&
+        (resetQuotaAction || quotaType === 'devin' || refreshedAt !== undefined) && (
+          <div className={styles.quotaCardActions}>
+            {refreshedAt !== undefined && <RefreshedAgo at={refreshedAt} />}
+            {resetQuotaAction}
+            {quotaType === 'devin' && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className={styles.quotaResetCreditButton}
+                onClick={() => void refreshQuotaForFile()}
+                disabled={!canRefreshQuota || quotaStatus === 'loading'}
+                loading={quotaStatus === 'loading'}
+                title={t('auth_files.quota_refresh_hint')}
+              >
+                {quotaStatus !== 'loading' && <IconRefreshCw size={14} />}
+                {t('auth_files.quota_refresh_single')}
+              </Button>
+            )}
+          </div>
+        )}
     </div>
   );
 }

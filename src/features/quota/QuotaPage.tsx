@@ -50,6 +50,7 @@ import type { QuotaProviderType } from './providers/types';
 import { useDevinQuotaAutoLoad } from './providers/devin/useDevinQuotaAutoLoad';
 import { useQuotaActions } from './hooks/useQuotaActions';
 import { useQuotaBatchLoader } from './hooks/useQuotaBatchLoader';
+import { useServerQuotaAutoLoad } from './hooks/useServerQuotaAutoLoad';
 import { readQuotaUiState, writeQuotaUiState } from './uiState';
 import styles from './QuotaPage.module.scss';
 
@@ -286,6 +287,11 @@ export function QuotaPage() {
       Boolean(error) ||
       filesGeneration !== sessionGeneration,
     loadQuota
+  );
+
+  useServerQuotaAutoLoad(
+    entries,
+    disableControls || loading || Boolean(error) || filesGeneration !== sessionGeneration
   );
 
   const canUseActions = !disableControls && !loading && filesGeneration === sessionGeneration;

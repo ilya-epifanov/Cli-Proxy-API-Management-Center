@@ -1498,6 +1498,10 @@
     "precise_save_recovery_required": "Không thể đọc lại kết quả lưu. Đã tạm dừng chỉnh sửa. Lưu lại để khôi phục mốc cơ sở của bản nháp, hoặc tải lại cấu hình."
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}} giây trước",
+    "refreshed_minutes": "{{value}} phút trước",
+    "refreshed_hours": "{{value}} trước",
+    "refreshed_title": "Máy chủ đọc lúc {{time}}",
     "title": "Quản lý Quota",
     "description": "Theo dõi trạng thái quota OAuth của credential Antigravity, Codex, Claude, Kimi và xAI.",
     "refresh_all_credentials": "Làm mới mọi credential",

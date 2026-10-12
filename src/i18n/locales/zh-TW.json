@@ -1565,6 +1565,10 @@
     }
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}} 秒前",
+    "refreshed_minutes": "{{value}} 分鐘前",
+    "refreshed_hours": "{{value}} 前",
+    "refreshed_title": "伺服器讀取於 {{time}}",
     "search_label": "搜尋帳號",
     "search_placeholder": "依檔案名稱或電子郵件搜尋",
     "search_empty_title": "沒有符合的帳號",

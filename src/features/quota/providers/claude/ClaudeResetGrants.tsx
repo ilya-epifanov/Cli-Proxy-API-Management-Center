@@ -4,6 +4,7 @@ import { useNow } from '@/hooks/useNow';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useNotificationStore } from '@/stores';
 import { apiClient } from '@/services/api/client';
+import { serverReadsQuota } from '@/services/api/capabilities';
 import {
   readClaudeResetGrants,
   type AnthropicResetGrantStatus,
@@ -19,7 +20,9 @@ export function useClaudeResetGrants(
   enabled: boolean,
   disabled: boolean,
   refreshToken: unknown,
-  onRefresh: () => void
+  onRefresh: () => void,
+  /** Status from the server's quota read; undefined when the card reads it directly. */
+  serverStatus: AnthropicResetGrantStatus | null | undefined
 ) {
   const { t } = useTranslation();
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
@@ -41,25 +44,46 @@ export function useClaudeResetGrants(
     const version = ++generation.current;
     setStatus(null);
     if (!enabled || disabled || !sessionActive || !authIndex) return;
+    if (serverStatus !== undefined) {
+      setStatus(serverStatus);
+      setMessage(serverStatus ? '' : 'read_error');
+      return;
+    }
     let cancelled = false;
     const current = () =>
       !cancelled && version === generation.current && session === apiClient.getConnectionRevision();
-    void readClaudeResetGrants(authIndex).then(
-      (result) => {
-        if (current()) {
-          setStatus(result);
-          setMessage('');
+    // A server that reads quota reads the grant status with it; without that status, there is
+    // nothing to show, and reading directly would bypass the server's rate limit.
+    void serverReadsQuota()
+      .then((serverReads) =>
+        serverReads ? Promise.reject(new Error('no server read')) : readClaudeResetGrants(authIndex)
+      )
+      .then(
+        (result) => {
+          if (current()) {
+            setStatus(result);
+            setMessage('');
+          }
+        },
+        () => {
+          if (current()) setMessage('read_error');
         }
-      },
-      () => {
-        if (current()) setMessage('read_error');
-      }
-    );
+      );
     return () => {
       cancelled = true;
       generation.current += 1;
     };
-  }, [authIndex, key, enabled, disabled, sessionActive, session, refreshToken, reload]);
+  }, [
+    authIndex,
+    key,
+    enabled,
+    disabled,
+    sessionActive,
+    session,
+    refreshToken,
+    reload,
+    serverStatus,
+  ]);
 
   const operation = resetGrantOperations.inspect(key);
   const pending = operation && !operation.code ? operation : undefined;

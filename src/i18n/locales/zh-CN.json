@@ -1539,6 +1539,10 @@
     }
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}} 秒前",
+    "refreshed_minutes": "{{value}} 分钟前",
+    "refreshed_hours": "{{value}} 前",
+    "refreshed_title": "服务器读取于 {{time}}",
     "search_label": "搜索账号",
     "search_placeholder": "按文件名或邮箱搜索",
     "search_empty_title": "没有匹配的账号",

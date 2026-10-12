@@ -1544,6 +1544,10 @@
     }
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}} с назад",
+    "refreshed_minutes": "{{value}} мин назад",
+    "refreshed_hours": "{{value}} назад",
+    "refreshed_title": "Сервер прочитал квоту {{time}}",
     "search_label": "Поиск аккаунтов",
     "search_placeholder": "Поиск по имени файла или электронной почте",
     "search_empty_title": "Аккаунты не найдены",

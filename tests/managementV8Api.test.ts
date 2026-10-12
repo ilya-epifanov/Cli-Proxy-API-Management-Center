@@ -12,6 +12,7 @@ import { vertexApi } from '@/services/api/vertex';
 import { apiKeyUsageApi } from '@/services/api/apiKeyUsage';
 import { getServerCapabilities } from '@/services/api/capabilities';
 import { getUsageSeries, getUsageTotals } from '@/services/api/usageHistory';
+import { quotaProbesApi } from '@/services/api/quotaProbes';
 
 const spies: Array<{ mockRestore(): void }> = [];
 const mock = (
@@ -359,5 +360,26 @@ describe('v8 management API contracts', () => {
     expect(get).toHaveBeenLastCalledWith('/observability/usage/totals', {
       params: { from: '2026-10-08T22:00:00Z', to: '2026-10-09T11:00:00Z' },
     });
+  });
+
+  test('quota probes read the cache and refresh one account through the server', async () => {
+    const get = mock('get', { entries: [] });
+    await quotaProbesApi.list();
+    expect(get).toHaveBeenLastCalledWith('/quota/probes');
+
+    const post = mock('post', {
+      auth_index: 'a1',
+      provider: 'claude',
+      attempted_at: '2026-10-11T10:00:00Z',
+      fetched_at: null,
+      error: { message: 'token expired' },
+      responses: {},
+    });
+    await quotaProbesApi.refresh('a1');
+    expect(post).toHaveBeenLastCalledWith(
+      '/quota/probes/refresh',
+      { auth_index: 'a1' },
+      { timeout: 90_000 }
+    );
   });
 });
