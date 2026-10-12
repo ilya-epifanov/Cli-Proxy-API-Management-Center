@@ -6,6 +6,7 @@
  */
 
 import type { TFunction } from 'i18next';
+import type { QuotaProbeEntry } from '@/services/api';
 import type {
   AntigravityQuotaState,
   AuthFileItem,
@@ -49,9 +50,15 @@ export interface QuotaProviderData<TState, TData> {
   i18nPrefix: string;
   filterFn: (file: AuthFileItem) => boolean;
   fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<TData>;
+  /**
+   * Quota from the server's latest read (`/quota/probes`), for providers the server reads.
+   * Throws when the server has no successful read of the account.
+   */
+  fromServerProbe?: (file: AuthFileItem, entry: QuotaProbeEntry, t: TFunction) => TData;
   /** Optional details loaded only after the primary quota has been committed. */
   enrichQuota?: (file: AuthFileItem, data: TData, t: TFunction) => Promise<TData>;
-  resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<TData>;
+  /** Spends a reset; the registry re-reads the quota afterwards (providers/index.ts). */
+  consumeReset?: (file: AuthFileItem, t: TFunction) => Promise<void>;
   canResetQuota?: (quota: TState) => boolean;
   storeSelector: (state: QuotaStore) => Record<string, TState>;
   storeSetter: keyof QuotaStore;

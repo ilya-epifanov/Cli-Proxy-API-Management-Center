@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useInterval } from '@/hooks/useInterval';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
+import { useServerQuotaAutoLoad } from '@/features/quota/hooks/useServerQuotaAutoLoad';
+import { classifyQuotaFiles } from '@/features/quota/logic';
 import { useRevealOnScroll } from '@/hooks/motion';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { Button } from '@/components/ui/Button';
@@ -384,6 +386,13 @@ export function AuthFilesPage() {
       void loadFiles({ background: true }).catch(() => {});
     },
     isCurrentLayer ? 240_000 : null
+  );
+
+  // Quota cards show the server's latest reads without a click, as on the Quota page.
+  const quotaEntries = useMemo(() => classifyQuotaFiles(files), [files]);
+  useServerQuotaAutoLoad(
+    quotaEntries,
+    !isCurrentLayer || disableControls || loading || Boolean(error)
   );
 
   /* ---------- 过滤 / 排序 / 分页 memos ---------- */

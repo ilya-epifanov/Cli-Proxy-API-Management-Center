@@ -10,7 +10,7 @@
 import { useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconRefreshCw } from '@/components/ui/icons';
-import type { ResolvedTheme } from '@/types';
+import type { ClaudeQuotaState, ResolvedTheme } from '@/types';
 import { resolveQuotaErrorMessage } from '@/utils/quota';
 import { getQuotaDisplayName } from '@/utils/quota/identity';
 import {
@@ -24,6 +24,8 @@ import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
+import { refreshedAtOf } from '../serverQuota';
+import { RefreshedAgo } from './RefreshedAgo';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
@@ -66,13 +68,15 @@ export function QuotaCard(props: QuotaCardProps) {
       : ({ '--card-delay': `${mountEntranceDelayMs}ms` } as CSSProperties);
 
   const status = quota?.status ?? 'idle';
+  const refreshedAt = refreshedAtOf(quota);
   const loading = status === 'loading';
   const claudeReset = useClaudeResetGrants(
     file,
     entry.type === 'claude' && status !== 'idle',
     !canRefresh || loading || resetting,
     quota,
-    onRefresh
+    onRefresh,
+    entry.type === 'claude' ? (quota as ClaudeQuotaState | undefined)?.resetGrants : undefined
   );
   const providerType =
     entry.type === 'plugin'
@@ -167,6 +171,7 @@ export function QuotaCard(props: QuotaCardProps) {
 
       {status !== 'idle' && (
         <footer className={styles.actionRow}>
+          {refreshedAt !== undefined && <RefreshedAgo at={refreshedAt} />}
           {entry.type === 'claude' && (
             <button
               type="button"

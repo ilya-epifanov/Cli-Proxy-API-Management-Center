@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useInterval } from '@/hooks/useInterval';
+import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import {
   apiClient,
   authFilesApi,
-  getServerCapabilities,
+  getCachedServerCapabilities,
   getUsageSeries,
   getUsageTotals,
   UsageStoreDisabledError,
@@ -78,7 +78,7 @@ type LoadResult =
 const browserTimeZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 async function fetchUsage(query: UsageQuery, nowMs: number, timeZone: string): Promise<LoadResult> {
-  const capabilities = await getServerCapabilities();
+  const capabilities = await getCachedServerCapabilities();
   if (capabilities.tag === 'upstream') return { tag: 'upstream' };
   if (!capabilities.usageStore.enabled) return { tag: 'disabled' };
 
@@ -175,22 +175,7 @@ export function useUsageHistory(query: UsageQuery): UsageHistory {
     };
   }, [reload]);
 
-  // Hidden tabs skip polls; a tab that becomes visible again refetches at once (design §12).
-  const pollable = connected && state.data.tag !== 'upstream';
-  useInterval(
-    () => {
-      if (document.visibilityState === 'visible') void reload();
-    },
-    pollable ? USAGE_POLL_MS : null
-  );
-  useEffect(() => {
-    if (!pollable) return;
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') void reload();
-    };
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, [pollable, reload]);
+  useVisiblePolling(reload, connected && state.data.tag !== 'upstream' ? USAGE_POLL_MS : null);
 
   return { ...state, reload };
 }

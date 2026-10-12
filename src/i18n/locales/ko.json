@@ -1564,6 +1564,10 @@
     }
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}}초 전",
+    "refreshed_minutes": "{{value}}분 전",
+    "refreshed_hours": "{{value}} 전",
+    "refreshed_title": "서버가 {{time}}에 읽음",
     "search_label": "계정 검색",
     "search_placeholder": "파일명 또는 이메일로 검색",
     "search_empty_title": "일치하는 계정 없음",

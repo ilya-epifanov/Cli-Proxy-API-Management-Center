@@ -47,6 +47,13 @@ const normalizeBody = (input: unknown): { bodyText: string; body: unknown | null
   }
 };
 
+/** An upstream answer the server already holds, in the shape apiCallApi.request returns. */
+export const toApiCallResult = (statusCode: number, body: unknown): ApiCallResult => ({
+  statusCode,
+  header: {},
+  ...normalizeBody(body),
+});
+
 export const getApiCallErrorMessage = (result: ApiCallResult): string => {
   const status = result.statusCode;
   const body = result.body;
