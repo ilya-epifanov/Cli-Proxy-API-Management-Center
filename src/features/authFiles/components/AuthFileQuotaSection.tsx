@@ -15,6 +15,8 @@ import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
 import { hasClaudeUsageData } from '@/features/quota/providers/claude/data';
+import { RefreshedAgo } from '@/features/quota/components/RefreshedAgo';
+import { refreshedAtOf } from '@/features/quota/serverQuota';
 import styles from './AuthFileQuota.module.scss';
 
 /** Bind the auth-file host's compact styles to the quota rendering contract. */
@@ -161,6 +163,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
   ]);
 
   const quotaStatus = quota?.status ?? 'idle';
+  const refreshedAt = quotaStatus === 'success' ? refreshedAtOf(quota) : undefined;
   const canRefreshQuota = !disableControls && !file.disabled && !resettingQuota;
   const canUseResetQuota = canRefreshQuota && quotaStatus !== 'loading';
   // Idle state already renders a clickable "click to refresh" prompt; only offer the
@@ -217,6 +220,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
       {retainedClaudeUsage && quota && <adapter.Body quota={quota} classes={compactQuotaClasses} />}
       {(showRefreshQuotaAction || resetQuotaAction) && (
         <div className={styles.quotaCardActions}>
+          {refreshedAt !== undefined && <RefreshedAgo at={refreshedAt} />}
           {resetQuotaAction}
           {showRefreshQuotaAction && (
             <Button

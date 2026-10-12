@@ -12,7 +12,8 @@ const response = (body: unknown, statusCode = 200) => ({
   bodyText: JSON.stringify(body),
   header: {},
 });
-const reset = () => CODEX_CONFIG.resetQuota!(file, t);
+// The provider spends and clears; the adapter registry re-reads the quota afterwards.
+const reset = () => CODEX_CONFIG.consumeReset!(file, t);
 const mocks: Array<{ mockRestore(): void }> = [];
 afterEach(() => {
   for (const mock of mocks.splice(0)) mock.mockRestore();
@@ -38,11 +39,11 @@ function setup(body: unknown, statusCode = 200) {
 
 describe('Codex reset gateway cooldown', () => {
   test.each(['reset', 'already_redeemed'])(
-    'clears only after confirmed %s, before reads',
+    'clears only after confirmed %s, and reads nothing itself',
     async (code) => {
       const { calls, clear } = setup({ code, windows_reset: 0 });
       await reset();
-      expect(calls.slice(0, 3)).toEqual(['consume', 'clear', 'read']);
+      expect(calls).toEqual(['consume', 'clear']);
       expect(clear).toHaveBeenCalledTimes(1);
       expect(clear).toHaveBeenCalledWith('test-index');
     }

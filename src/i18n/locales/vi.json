@@ -1562,6 +1562,10 @@
     "hide_details": "Ẩn chi tiết"
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}} giây trước",
+    "refreshed_minutes": "{{value}} phút trước",
+    "refreshed_hours": "{{value}} trước",
+    "refreshed_title": "Máy chủ đọc lúc {{time}}",
     "title": "Quản lý Quota",
     "refresh_all_credentials": "Làm mới mọi credential",
     "sort_label": "Sắp xếp",
