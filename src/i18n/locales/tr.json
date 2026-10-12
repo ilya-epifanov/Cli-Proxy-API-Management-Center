@@ -1606,7 +1606,8 @@
     "hide_details": "Ayrıntıları Gizle"
   },
   "quota_management": {
-    "refreshed_seconds": "{{value}} sn önce",
+    "refreshed_just_now": "az önce",
+    "refreshed_under_minute": "<1 dakika önce",
     "refreshed_minutes": "{{value}} dk önce",
     "refreshed_hours": "{{value}} önce",
     "refreshed_title": "Sunucunun okuma zamanı: {{time}}",
