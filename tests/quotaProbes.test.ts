@@ -174,9 +174,11 @@ describe('merging server reads into card states', () => {
 
 describe('refreshed ago', () => {
   test.each([
-    [-2_000, 'seconds', '0'],
-    [0, 'seconds', '0'],
-    [59_999, 'seconds', '59'],
+    [-2_000, 'just_now', ''],
+    [0, 'just_now', ''],
+    [30_000, 'just_now', ''],
+    [30_001, 'under_minute', ''],
+    [59_999, 'under_minute', ''],
     [60_000, 'minutes', '1'],
     [59 * 60_000 + 59_999, 'minutes', '59'],
     [3_600_000, 'hours', '1:00'],

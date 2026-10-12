@@ -1541,7 +1541,8 @@
     }
   },
   "quota_management": {
-    "refreshed_seconds": "{{value}}s ago",
+    "refreshed_just_now": "just now",
+    "refreshed_under_minute": "<1 minute ago",
     "refreshed_minutes": "{{value}}m ago",
     "refreshed_hours": "{{value}} ago",
     "refreshed_title": "Read by the server at {{time}}",

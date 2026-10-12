@@ -1544,7 +1544,8 @@
     }
   },
   "quota_management": {
-    "refreshed_seconds": "{{value}} с назад",
+    "refreshed_just_now": "только что",
+    "refreshed_under_minute": "<1 мин назад",
     "refreshed_minutes": "{{value}} мин назад",
     "refreshed_hours": "{{value}} назад",
     "refreshed_title": "Сервер прочитал квоту {{time}}",
