@@ -1606,6 +1606,10 @@
     "hide_details": "Ayrıntıları Gizle"
   },
   "quota_management": {
+    "refreshed_seconds": "{{value}} sn önce",
+    "refreshed_minutes": "{{value}} dk önce",
+    "refreshed_hours": "{{value}} önce",
+    "refreshed_title": "Sunucunun okuma zamanı: {{time}}",
     "search_label": "Hesap Ara",
     "search_placeholder": "Dosya Adına veya E-postaya Göre Ara",
     "search_empty_title": "Eşleşen Hesap Yok",

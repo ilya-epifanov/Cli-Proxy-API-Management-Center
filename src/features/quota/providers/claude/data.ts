@@ -14,8 +14,19 @@ import type {
   ClaudeUsageWindow,
   ClaudeUsagePayload,
 } from '@/types';
-import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
+import {
+  apiCallApi,
+  getApiCallErrorMessage,
+  type ApiCallResult,
+  type QuotaProbeEntry,
+} from '@/services/api';
 import { normalizeClaudeUsageSnapshot } from '@/services/api/claudeUsage';
+import {
+  parseAnthropicResetGrantStatus,
+  type AnthropicResetGrantStatus,
+} from '@/services/api/claudeResetGrants';
+import { isRecord } from '@/utils/helpers';
+import { probeUsage } from '../serverProbe';
 import {
   CLAUDE_PROFILE_URL,
   CLAUDE_USAGE_URL,
@@ -40,6 +51,13 @@ export type ClaudeQuotaData = {
   planType?: string | null;
   dollarWindows: ClaudeDollarWindow[];
   observedAt: string;
+  /** When the server read this quota (epoch ms); null for a direct read just now. */
+  refreshedAt: number | null;
+  /**
+   * Reset grant status the server read with the quota; null when it could not, undefined for
+   * a direct read (the card then reads the status itself).
+   */
+  resetGrants?: AnthropicResetGrantStatus | null;
 };
 
 export const hasClaudeUsageData = (quota?: ClaudeQuotaState): boolean =>
@@ -205,6 +223,62 @@ export const resolveClaudePlanType = (profile: ClaudeProfileResponse | null): st
   return null;
 };
 
+const buildClaudeQuotaData = (
+  usage: ApiCallResult,
+  profile: ApiCallResult | null,
+  refreshedAt: number | null,
+  t: TFunction
+): ClaudeQuotaData => {
+  if (usage.statusCode < 200 || usage.statusCode >= 300) {
+    throw createStatusError(getApiCallErrorMessage(usage), usage.statusCode);
+  }
+
+  const payload = parseClaudeUsagePayload(usage.body ?? usage.bodyText);
+  if (!payload) {
+    throw new Error(t('claude_quota.empty_windows'));
+  }
+
+  const snapshot = normalizeClaudeUsageSnapshot(payload);
+  if (!snapshot) {
+    throw new Error(t('claude_quota.empty_windows'));
+  }
+  const dollarWindows = snapshot.dollarWindows;
+  // Full dollar balances get their own amount/reset rows, not a second plan meter.
+  const windows = buildClaudeQuotaWindows(payload, t).filter(
+    (window) =>
+      window.id !== 'cloud-session-credits' ||
+      !dollarWindows.some((balance) => balance.key === 'iguana_necktie')
+  );
+  const planType =
+    profile && profile.statusCode >= 200 && profile.statusCode < 300
+      ? resolveClaudePlanType(parseClaudeProfilePayload(profile.body ?? profile.bodyText))
+      : null;
+
+  return {
+    windows,
+    extraUsage: snapshot.extraUsage,
+    dollarWindows,
+    // A server read was observed when the server made it; a direct read just now.
+    observedAt: new Date(refreshedAt ?? Date.now()).toISOString(),
+    planType,
+    refreshedAt,
+  };
+};
+
+/** Quota from the server's latest read of the account. */
+export const claudeQuotaFromProbe = (entry: QuotaProbeEntry, t: TFunction): ClaudeQuotaData => {
+  const usage = probeUsage(entry, t('claude_quota.empty_windows'));
+  const grants = entry.responses.get('reset_grants');
+  const resetGrants =
+    grants && grants.statusCode >= 200 && grants.statusCode < 300 && isRecord(grants.body)
+      ? parseAnthropicResetGrantStatus(grants.body.cedar_ember)
+      : null;
+  return {
+    ...buildClaudeQuotaData(usage, entry.responses.get('profile') ?? null, entry.fetchedAt, t),
+    resetGrants,
+  };
+};
+
 const fetchClaudeQuota = async (file: AuthFileItem, t: TFunction): Promise<ClaudeQuotaData> => {
   const rawAuthIndex = file['auth_index'] ?? file.authIndex;
   const authIndex = normalizeAuthIndex(rawAuthIndex);
@@ -230,45 +304,8 @@ const fetchClaudeQuota = async (file: AuthFileItem, t: TFunction): Promise<Claud
   if (usageResult.status === 'rejected') {
     throw usageResult.reason;
   }
-
-  const result = usageResult.value;
-
-  if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
-  }
-
-  const payload = parseClaudeUsagePayload(result.body ?? result.bodyText);
-  if (!payload) {
-    throw new Error(t('claude_quota.empty_windows'));
-  }
-
-  const snapshot = normalizeClaudeUsageSnapshot(payload);
-  if (!snapshot) {
-    throw new Error(t('claude_quota.empty_windows'));
-  }
-  const dollarWindows = snapshot.dollarWindows;
-  // Full dollar balances get their own amount/reset rows, not a second plan meter.
-  const windows = buildClaudeQuotaWindows(payload, t).filter(
-    (window) =>
-      window.id !== 'cloud-session-credits' ||
-      !dollarWindows.some((balance) => balance.key === 'iguana_necktie')
-  );
-  const planType =
-    profileResult.status === 'fulfilled' &&
-    profileResult.value.statusCode >= 200 &&
-    profileResult.value.statusCode < 300
-      ? resolveClaudePlanType(
-          parseClaudeProfilePayload(profileResult.value.body ?? profileResult.value.bodyText)
-        )
-      : null;
-
-  return {
-    windows,
-    extraUsage: snapshot.extraUsage,
-    dollarWindows,
-    observedAt: new Date().toISOString(),
-    planType,
-  };
+  const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
+  return buildClaudeQuotaData(usageResult.value, profile, null, t);
 };
 
 export const CLAUDE_CONFIG: QuotaProviderData<ClaudeQuotaState, ClaudeQuotaData> = {
@@ -276,6 +313,7 @@ export const CLAUDE_CONFIG: QuotaProviderData<ClaudeQuotaState, ClaudeQuotaData>
   i18nPrefix: 'claude_quota',
   filterFn: (file) => isClaudeFile(file) && !isDisabledAuthFile(file),
   fetchQuota: fetchClaudeQuota,
+  fromServerProbe: (_file, entry, t) => claudeQuotaFromProbe(entry, t),
   storeSelector: (state) => state.claudeQuota,
   storeSetter: 'setClaudeQuota',
   buildLoadingState: () => ({ status: 'loading', windows: [] }),
@@ -284,6 +322,8 @@ export const CLAUDE_CONFIG: QuotaProviderData<ClaudeQuotaState, ClaudeQuotaData>
     windows: data.windows,
     extraUsage: data.extraUsage,
     planType: data.planType,
+    refreshedAt: data.refreshedAt,
+    resetGrants: data.resetGrants,
     dollarWindows: data.dollarWindows,
     observedAt: data.observedAt,
     stale: false,

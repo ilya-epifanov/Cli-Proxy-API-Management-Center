@@ -10,6 +10,7 @@ import { logsApi } from '@/services/api/logs';
 import { versionApi } from '@/services/api/version';
 import { vertexApi } from '@/services/api/vertex';
 import { apiKeyUsageApi } from '@/services/api/apiKeyUsage';
+import { quotaProbesApi } from '@/services/api/quotaProbes';
 
 const spies: Array<{ mockRestore(): void }> = [];
 const mock = (
@@ -321,5 +322,26 @@ describe('v8 management API contracts', () => {
     expect(raw.mock.calls.at(-1)?.[0]).toBe('/config.yaml');
     await configFileApi.saveConfigYaml('config: yaml');
     expect(put.mock.calls.at(-1)?.slice(0, 2)).toEqual(['/config.yaml', 'config: yaml']);
+  });
+
+  test('quota probes read the cache and refresh one account through the server', async () => {
+    const get = mock('get', { entries: [] });
+    await quotaProbesApi.list();
+    expect(get).toHaveBeenLastCalledWith('/quota/probes');
+
+    const post = mock('post', {
+      auth_index: 'a1',
+      provider: 'claude',
+      attempted_at: '2026-10-11T10:00:00Z',
+      fetched_at: null,
+      error: { message: 'token expired' },
+      responses: {},
+    });
+    await quotaProbesApi.refresh('a1');
+    expect(post).toHaveBeenLastCalledWith(
+      '/quota/probes/refresh',
+      { auth_index: 'a1' },
+      { timeout: 90_000 }
+    );
   });
 });
