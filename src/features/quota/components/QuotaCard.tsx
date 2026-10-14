@@ -25,7 +25,9 @@ import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
 import { refreshedAtOf } from '../serverQuota';
+import type { CardRouting } from '../routing';
 import { RefreshedAgo } from './RefreshedAgo';
+import { RoutingNotes, RoutingRank } from './QuotaRouting';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
@@ -38,6 +40,8 @@ export type QuotaCardProps = {
   resolvedTheme: ResolvedTheme;
   canRefresh: boolean;
   resetting: boolean;
+  /** The pace selector's rank for this account; absent when the server does not rank. */
+  routing?: CardRouting;
   /** 首屏级联入场延迟；null = 不入场（切 tab / 翻页 / 刷新新挂载的卡片）。 */
   entranceDelayMs?: number | null;
   onRefresh: () => void;
@@ -51,6 +55,7 @@ export function QuotaCard(props: QuotaCardProps) {
     resolvedTheme,
     canRefresh,
     resetting,
+    routing,
     entranceDelayMs,
     onRefresh,
     onReset,
@@ -80,7 +85,9 @@ export function QuotaCard(props: QuotaCardProps) {
   );
   const providerType =
     entry.type === 'plugin'
-      ? String(file.quotaProvider ?? file['quota_provider'] ?? file.provider ?? file.type ?? 'plugin')
+      ? String(
+          file.quotaProvider ?? file['quota_provider'] ?? file.provider ?? file.type ?? 'plugin'
+        )
       : entry.type;
   const iconSrc = getAuthFileIcon(providerType, resolvedTheme);
   const typeLabel = getTypeLabel(t, providerType);
@@ -119,7 +126,10 @@ export function QuotaCard(props: QuotaCardProps) {
         <span className={styles.fileName} title={displayName}>
           {displayName}
         </span>
+        {routing && <RoutingRank routing={routing} />}
       </header>
+
+      {routing && <RoutingNotes routing={routing} file={file} />}
 
       <div className={styles.body}>
         {entry.type === 'claude' && status === 'success' && (

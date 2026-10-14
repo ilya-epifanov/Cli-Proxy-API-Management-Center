@@ -1566,6 +1566,26 @@
       }
     }
   },
+  "quota_routing": {
+    "rank_title": "Место {{rank}} из {{total}} для новых сессий",
+    "top_band_title": "Новая сессия выбирает случайно один из аккаунтов с такой отметкой",
+    "pace": "темп {{pace}} по окну «{{window}}»",
+    "pace_title": "Темп: доля оставшейся квоты окна «{{window}}», делённая на долю оставшегося времени. 1× — по графику. Выше 1× квота сгорит неиспользованной, если аккаунт не получит больше сессий.",
+    "estimated": "сброс прошёл, читаем заново",
+    "burst_low": "5 часов: осталось {{percent}} %, используется после других",
+    "stale": "данные могли устареть",
+    "exhausted": "«{{window}}» исчерпано",
+    "exhausted_until": "«{{window}}» исчерпано, вернётся {{when}}",
+    "unknown": "данных о квоте пока нет, используется после аккаунтов с данными",
+    "not_routed_cooldown_until": "не используется: перерыв, вернётся {{when}}",
+    "not_routed_cooldown": "не используется: перерыв",
+    "not_routed_disabled": "не используется: отключён",
+    "not_routed_auth_error": "не используется: ошибка входа",
+    "not_routed_unavailable": "не используется: недоступен",
+    "model_cooldown": "{{model}}: перерыв, вернётся {{when}}",
+    "rank_model_prefix": "Место Claude для",
+    "rank_model_any": "любой модели"
+  },
   "quota_management": {
     "refreshed_just_now": "только что",
     "refreshed_under_minute": "<1 мин назад",
@@ -1583,6 +1603,7 @@
     "sort_label": "Сортировка",
     "sort_default": "По умолчанию",
     "sort_soonest": "Сначала ближайшее восстановление",
+    "sort_routing": "Порядок маршрутизации",
     "meta_credentials": "{{count}} учётных данных",
     "meta_loaded": "{{count}} загружено",
     "meta_attention": "{{count}} требуют внимания",

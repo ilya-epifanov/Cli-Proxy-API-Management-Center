@@ -1563,6 +1563,26 @@
       }
     }
   },
+  "quota_routing": {
+    "rank_title": "Rank {{rank}} of {{total}} for new sessions",
+    "top_band_title": "A new session picks one of the accounts marked like this, at random",
+    "pace": "pace {{pace}} on {{window}}",
+    "pace_title": "Pace: share of {{window}} left divided by the share of its time left. 1× is on schedule. Above 1×, quota expires unused unless this account gets more sessions.",
+    "estimated": "reset passed, re-reading",
+    "burst_low": "5-hour at {{percent}} %: used after other accounts",
+    "stale": "data may be out of date",
+    "exhausted": "{{window}} used up",
+    "exhausted_until": "{{window}} used up, back {{when}}",
+    "unknown": "no quota data yet, used after accounts with data",
+    "not_routed_cooldown_until": "not used: cooling down, back {{when}}",
+    "not_routed_cooldown": "not used: cooling down",
+    "not_routed_disabled": "not used: disabled",
+    "not_routed_auth_error": "not used: sign-in error",
+    "not_routed_unavailable": "not used: unavailable",
+    "model_cooldown": "{{model}} cooling down, back {{when}}",
+    "rank_model_prefix": "Claude rank for",
+    "rank_model_any": "any model"
+  },
   "quota_management": {
     "refreshed_just_now": "just now",
     "refreshed_under_minute": "<1 minute ago",
@@ -1580,6 +1600,7 @@
     "sort_label": "Sort",
     "sort_default": "Default",
     "sort_soonest": "Soonest recovery",
+    "sort_routing": "Routing rank",
     "meta_credentials": "{{count}} credentials",
     "meta_loaded": "{{count}} loaded",
     "meta_attention": "{{count}} need attention",

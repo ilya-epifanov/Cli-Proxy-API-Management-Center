@@ -1563,6 +1563,26 @@
       }
     }
   },
+  "quota_routing": {
+    "rank_title": "새 세션 순위 {{rank}} / {{total}}",
+    "top_band_title": "새 세션은 이 표시가 있는 계정 중 하나를 무작위로 선택합니다",
+    "pace": "{{window}} 페이스 {{pace}}",
+    "pace_title": "페이스: {{window}}의 남은 비율을 남은 시간 비율로 나눈 값입니다. 1×는 계획대로이며, 1×보다 높으면 이 계정에 세션이 더 배정되지 않는 한 할당량이 쓰이지 않고 만료됩니다.",
+    "estimated": "재설정 시각 지남, 다시 읽는 중",
+    "burst_low": "5시간 {{percent}}% 남음: 다른 계정 다음에 사용",
+    "stale": "데이터가 오래되었을 수 있음",
+    "exhausted": "{{window}} 소진",
+    "exhausted_until": "{{window}} 소진, {{when}} 복구",
+    "unknown": "할당량 데이터 없음, 데이터가 있는 계정 다음에 사용",
+    "not_routed_cooldown_until": "사용 안 함: 쿨다운 중, {{when}} 복구",
+    "not_routed_cooldown": "사용 안 함: 쿨다운 중",
+    "not_routed_disabled": "사용 안 함: 비활성화됨",
+    "not_routed_auth_error": "사용 안 함: 로그인 오류",
+    "not_routed_unavailable": "사용 안 함: 사용할 수 없음",
+    "model_cooldown": "{{model}} 쿨다운 중, {{when}} 복구",
+    "rank_model_prefix": "Claude 순위 기준",
+    "rank_model_any": "모든 모델"
+  },
   "quota_management": {
     "refreshed_just_now": "방금",
     "refreshed_under_minute": "<1분 전",
@@ -1580,6 +1600,7 @@
     "sort_label": "정렬",
     "sort_default": "기본값",
     "sort_soonest": "가장 빠른 복구순",
+    "sort_routing": "라우팅 순위",
     "meta_credentials": "자격 증명 {{count}}개",
     "meta_loaded": "{{count}}개 로드됨",
     "meta_attention": "{{count}}개 주의 필요",

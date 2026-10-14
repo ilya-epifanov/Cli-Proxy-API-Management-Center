@@ -22,7 +22,7 @@ describe('parseCapabilities', () => {
           config_writable: false,
           quota_cache: true,
           usage_store: { enabled: true, dropped_records: 12 },
-          strategies: ['fill-first', 'soonest-reset'],
+          strategies: ['fill-first', 'pace'],
         })
       )
     ).toEqual({
@@ -30,7 +30,7 @@ describe('parseCapabilities', () => {
       configWritable: false,
       quotaCache: true,
       usageStore: { enabled: true, droppedRecords: 12 },
-      strategies: ['fill-first', 'soonest-reset'],
+      strategies: ['fill-first', 'pace'],
     });
   });
 

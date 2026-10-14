@@ -1562,6 +1562,26 @@
       }
     }
   },
+  "quota_routing": {
+    "rank_title": "新会话排名第 {{rank}} / {{total}}",
+    "top_band_title": "新会话会从带此标记的账号中随机选择一个",
+    "pace": "{{window}} 进度 {{pace}}",
+    "pace_title": "进度：{{window}} 剩余比例除以剩余时间比例。1× 表示按计划使用；高于 1× 时，除非该账号承接更多会话，否则额度会在重置前用不完。",
+    "estimated": "已过重置时间，正在重新读取",
+    "burst_low": "5 小时剩余 {{percent}}%：排在其他账号之后",
+    "stale": "数据可能已过时",
+    "exhausted": "{{window}} 已用完",
+    "exhausted_until": "{{window}} 已用完，{{when}}恢复",
+    "unknown": "暂无额度数据，排在有数据的账号之后",
+    "not_routed_cooldown_until": "不使用：冷却中，{{when}}恢复",
+    "not_routed_cooldown": "不使用：冷却中",
+    "not_routed_disabled": "不使用：已禁用",
+    "not_routed_auth_error": "不使用：登录错误",
+    "not_routed_unavailable": "不使用：不可用",
+    "model_cooldown": "{{model}} 冷却中，{{when}}恢复",
+    "rank_model_prefix": "Claude 排名依据",
+    "rank_model_any": "任意模型"
+  },
   "quota_management": {
     "refreshed_just_now": "刚刚",
     "refreshed_under_minute": "不到 1 分钟前",
@@ -1579,6 +1599,7 @@
     "sort_label": "排序",
     "sort_default": "默认",
     "sort_soonest": "最快恢复优先",
+    "sort_routing": "路由排名",
     "meta_credentials": "{{count}} 个凭证",
     "meta_loaded": "{{count}} 个已加载",
     "meta_attention": "{{count}} 个需关注",

@@ -1590,6 +1590,26 @@
       }
     }
   },
+  "quota_routing": {
+    "rank_title": "新工作階段排名第 {{rank}} / {{total}}",
+    "top_band_title": "新工作階段會從帶此標記的帳號中隨機選擇一個",
+    "pace": "{{window}} 進度 {{pace}}",
+    "pace_title": "進度：{{window}} 剩餘比例除以剩餘時間比例。1× 表示依計畫使用；高於 1× 時，除非該帳號承接更多工作階段，否則額度會在重置前用不完。",
+    "estimated": "已過重置時間，正在重新讀取",
+    "burst_low": "5 小時剩餘 {{percent}}%：排在其他帳號之後",
+    "stale": "資料可能已過時",
+    "exhausted": "{{window}} 已用完",
+    "exhausted_until": "{{window}} 已用完，{{when}}恢復",
+    "unknown": "尚無額度資料，排在有資料的帳號之後",
+    "not_routed_cooldown_until": "不使用：冷卻中，{{when}}恢復",
+    "not_routed_cooldown": "不使用：冷卻中",
+    "not_routed_disabled": "不使用：已停用",
+    "not_routed_auth_error": "不使用：登入錯誤",
+    "not_routed_unavailable": "不使用：無法使用",
+    "model_cooldown": "{{model}} 冷卻中，{{when}}恢復",
+    "rank_model_prefix": "Claude 排名依據",
+    "rank_model_any": "任意模型"
+  },
   "quota_management": {
     "refreshed_just_now": "剛剛",
     "refreshed_under_minute": "不到 1 分鐘前",
@@ -1607,6 +1627,7 @@
     "sort_label": "排序",
     "sort_default": "預設",
     "sort_soonest": "最快恢復優先",
+    "sort_routing": "路由排名",
     "meta_credentials": "{{count}} 個憑證",
     "meta_loaded": "{{count}} 個已載入",
     "meta_attention": "{{count}} 個需關注",

@@ -9,6 +9,8 @@ import {
 export type QuotaUiState = {
   tab?: QuotaTabId;
   sortMode?: QuotaSortMode;
+  /** Model the Claude routing rank is shown for; '' = any model. */
+  claudeRankModel?: string;
 };
 
 const QUOTA_UI_STATE_KEY = 'quotaPage.uiState';
@@ -32,6 +34,8 @@ export const readQuotaUiState = (): QuotaUiState | null => {
     return {
       tab: isQuotaTabId(parsed.tab) ? parsed.tab : undefined,
       sortMode: isQuotaSortMode(parsed.sortMode) ? parsed.sortMode : undefined,
+      claudeRankModel:
+        typeof parsed.claudeRankModel === 'string' ? parsed.claudeRankModel : undefined,
     };
   } catch {
     return null;

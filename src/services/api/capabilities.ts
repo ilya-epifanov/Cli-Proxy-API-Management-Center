@@ -14,7 +14,7 @@ export const STRATEGY_NAMES = [
   'round-robin',
   'weighted-round-robin',
   'fill-first',
-  'soonest-reset',
+  'pace',
 ] as const;
 
 export type StrategyName = (typeof STRATEGY_NAMES)[number];
