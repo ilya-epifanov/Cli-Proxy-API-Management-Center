@@ -18,3 +18,4 @@ export * from './vertex';
 export * from './responseShape';
 export * from './capabilities';
 export * from './quotaProbes';
+export * from './routingRanking';
