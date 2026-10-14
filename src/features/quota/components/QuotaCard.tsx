@@ -26,7 +26,9 @@ import { CodexCreditOverageDialog } from '../providers/codex/CodexCreditOverageD
 import { CodexCreditOverageRow } from '../providers/codex/CodexCreditOverageRow';
 import { useCodexCreditOverage } from '../providers/codex/useCodexCreditOverage';
 import { refreshedAtOf } from '../serverQuota';
+import type { CardRouting } from '../routing';
 import { RefreshedAgo } from './RefreshedAgo';
+import { RoutingNotes, RoutingRank } from './QuotaRouting';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
@@ -39,6 +41,8 @@ export type QuotaCardProps = {
   resolvedTheme: ResolvedTheme;
   canRefresh: boolean;
   resetting: boolean;
+  /** The pace selector's rank for this account; absent when the server does not rank. */
+  routing?: CardRouting;
   /** Initial cascade delay; null disables entrance motion for later mounts. */
   entranceDelayMs?: number | null;
   /**
@@ -60,6 +64,7 @@ export function QuotaCard(props: QuotaCardProps) {
     resolvedTheme,
     canRefresh,
     resetting,
+    routing,
     entranceDelayMs,
     glance,
     onToggleGlance,
@@ -170,6 +175,7 @@ export function QuotaCard(props: QuotaCardProps) {
         <span className={styles.fileName} title={displayName}>
           {displayName}
         </span>
+        {routing && <RoutingRank routing={routing} />}
         {glance !== undefined && (
           <button
             type="button"
@@ -183,6 +189,8 @@ export function QuotaCard(props: QuotaCardProps) {
           </button>
         )}
       </header>
+
+      {routing && !glance && <RoutingNotes routing={routing} file={file} />}
 
       <div className={styles.body}>
         {status === 'idle' ? (
