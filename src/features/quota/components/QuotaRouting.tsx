@@ -5,8 +5,10 @@
 
 import { useTranslation } from 'react-i18next';
 import { useNow } from '@/hooks/useNow';
+import type { PoolRanking } from '@/services/api';
 import type { AuthFileItem } from '@/types';
-import { routingNotes, routingRankTitle, type CardRouting } from '../routing';
+import type { QuotaTabId } from '../constants';
+import { poolPaceLines, routingNotes, routingRankTitle, type CardRouting } from '../routing';
 import styles from './QuotaCard.module.scss';
 
 /** `#2/5`, highlighted when a new session may land on this account. */
@@ -42,6 +44,34 @@ export function RoutingNotes({ routing, file }: { routing: CardRouting; file: Au
           title={note.title}
         >
           {note.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/** Pool pace per provider the tab shows, and whether the throttle slows requests now. */
+export function PoolPaceLines({
+  pools,
+  tab,
+  className,
+}: {
+  pools: readonly PoolRanking[];
+  tab: QuotaTabId;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const lines = poolPaceLines(t, pools, tab);
+  if (lines.length === 0) return null;
+  return (
+    <div className={className}>
+      {lines.map((line) => (
+        <p
+          key={line.provider}
+          className={`${styles.routingLine} ${line.warn ? styles.routingLineWarn : ''}`}
+          title={line.title}
+        >
+          {line.text}
         </p>
       ))}
     </div>

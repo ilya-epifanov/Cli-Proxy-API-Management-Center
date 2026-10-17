@@ -58,6 +58,26 @@ export interface NotCandidate {
   until: number | null;
 }
 
+/**
+ * The pool's pace: quota left over time left, summed over the accounts that can serve now
+ * (not cooling down, no used-up window, with quota data), on the window most behind schedule.
+ */
+export type PoolPace =
+  | { accounts: number; pace: number; window: string }
+  /** No usable account has quota data. */
+  | { accounts: number; pace: null; window: null };
+
+/** The strategy's request throttle: requests wait while the pool pace is below the threshold. */
+export interface PoolThrottle {
+  /** What each new request for this pool waits now. */
+  delayMs: number;
+  /** Pool pace below which requests start to wait. */
+  threshold: number;
+  /** Pool pace at and below which requests wait the full maximum. */
+  floor: number;
+  maxDelayMs: number;
+}
+
 export interface PoolRanking {
   provider: string;
   /** null: ranked for any model (credential scope). */
@@ -67,6 +87,10 @@ export interface PoolRanking {
   longWindows: string[];
   entries: RankEntry[];
   notCandidates: NotCandidate[];
+  /** null when the strategy is not pace, or the server predates the pool pace. */
+  poolPace: PoolPace | null;
+  /** null when throttling is off, or the server predates it. */
+  throttle: PoolThrottle | null;
 }
 
 export interface RoutingRanking {
@@ -126,6 +150,30 @@ const parseEntry = (value: unknown, path: string): RankEntry => {
   }
 };
 
+const parsePoolPace = (value: unknown, path: string): PoolPace => {
+  const raw = reader.record(value, path);
+  const accounts = reader.count(raw.accounts, `${path}.accounts`);
+  if (raw.pace === null || raw.pace === undefined) {
+    if (raw.window !== null && raw.window !== undefined) reader.fail(`${path}.window`, 'null');
+    return { accounts, pace: null, window: null };
+  }
+  return {
+    accounts,
+    pace: finite(raw.pace, `${path}.pace`),
+    window: reader.string(raw.window, `${path}.window`),
+  };
+};
+
+const parseThrottle = (value: unknown, path: string): PoolThrottle => {
+  const raw = reader.record(value, path);
+  return {
+    delayMs: reader.count(raw.delay_ms, `${path}.delay_ms`),
+    threshold: finite(raw.threshold, `${path}.threshold`),
+    floor: finite(raw.floor, `${path}.floor`),
+    maxDelayMs: reader.count(raw.max_delay_ms, `${path}.max_delay_ms`),
+  };
+};
+
 const parsePool = (value: unknown, path: string): PoolRanking => {
   const raw = reader.record(value, path);
   return {
@@ -145,6 +193,8 @@ const parsePool = (value: unknown, path: string): PoolRanking => {
         until: nullable(nc.until, (v) => reader.instant(v, `${itemPath}.until`)),
       };
     }),
+    poolPace: nullable(raw.pool_pace, (v) => parsePoolPace(v, `${path}.pool_pace`)),
+    throttle: nullable(raw.throttle, (v) => parseThrottle(v, `${path}.throttle`)),
   };
 };
 
