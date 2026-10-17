@@ -2354,6 +2354,7 @@
     "ineligible": "Tài khoản này không đủ điều kiện.",
     "unavailable": "Tính năng đặt lại hiện không khả dụng.",
     "rate_limited": "Yêu cầu bị giới hạn tốc độ.",
-    "auth_error": "Ủy quyền đã bị từ chối."
+    "auth_error": "Ủy quyền đã bị từ chối.",
+    "reset_cooldown_failed": "Quota đã được đặt lại nhưng không thể xóa thời gian chờ của gateway. Trên kết nối ban đầu, hãy dùng chức năng xóa thời gian chờ ở trang tệp xác thực; không sử dụng thêm lượt đặt lại."
   }
 }

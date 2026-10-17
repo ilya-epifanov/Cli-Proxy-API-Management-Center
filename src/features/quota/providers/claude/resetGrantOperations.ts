@@ -6,6 +6,7 @@ import {
   readClaudeResetGrants,
   type AnthropicResetSettledCode,
 } from '@/services/api/claudeResetGrants';
+import { clearResetCooldown } from '../clearResetCooldown';
 
 export const RETRY_WINDOW_MS = 10 * 60 * 1000;
 type Operation = {
@@ -20,6 +21,7 @@ const defaultDependencies = {
   readStatus: readClaudeResetGrants,
   readOrganization: readClaudeOrganization,
   claim: claimClaudeResetGrant,
+  clearCooldown: clearResetCooldown,
   now: () => Date.now(),
   requestId: () => crypto.randomUUID() as string,
 };
@@ -90,7 +92,19 @@ export function createResetGrantOperations(deps = defaultDependencies) {
         assertSession();
         // A refusal on a retry cannot prove that the earlier ambiguous POST did not spend.
         if (!wasRetry || code === 'reset' || code === 'already_used') operation.code = code;
-        return { code, unresolved: !operation.code };
+        const reset = code === 'reset' || code === 'already_used';
+        // The gateway's cooldown outlives the upstream reset unless it is cleared too.
+        // The spend is settled either way; a failure only sends the operator to Clear cooldown.
+        let cooldownFailed = false;
+        if (reset) {
+          try {
+            assertSession();
+            await deps.clearCooldown(authIndex);
+          } catch {
+            cooldownFailed = true;
+          }
+        }
+        return { code, unresolved: !operation.code, cooldownFailed };
       } finally {
         if (deps.revision() === session) busy.delete(key);
       }

@@ -16,13 +16,13 @@ import type {
 } from '@/types';
 import {
   apiCallApi,
-  authFilesApi,
   getApiCallErrorMessage,
   type ApiCallResult,
   type QuotaProbeEntry,
 } from '@/services/api';
 import { guardConfigConnection } from '@/services/api/configValue';
 import { isRecord } from '@/utils/helpers';
+import { clearResetCooldown } from '../clearResetCooldown';
 import { probeUsage } from '../serverProbe';
 import {
   CODEX_RATE_LIMIT_RESET_CREDITS_URL,
@@ -572,11 +572,8 @@ const spendCodexReset = async (file: AuthFileItem, t: TFunction): Promise<void> 
   try {
     // Never clear a different connection's cooldown after awaiting redemption.
     assertConnection();
-    const result = await authFilesApi.resetCooldown(authIndex);
+    await clearResetCooldown(authIndex);
     assertConnection();
-    if (result.status !== 'ok' || result.auth_index !== authIndex) {
-      throw new Error('Invalid cooldown reset response');
-    }
   } catch {
     // Redemption already succeeded: direct the operator to the existing clear action.
     throw new Error(t('codex_quota.reset_cooldown_failed'));

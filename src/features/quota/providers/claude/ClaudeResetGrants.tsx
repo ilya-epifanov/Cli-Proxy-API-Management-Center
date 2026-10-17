@@ -110,6 +110,10 @@ export function useClaudeResetGrants(
         try {
           const answer = await resetGrantOperations.run(key, authIndex, selected);
           if (!current()) return;
+          if (answer.cooldownFailed) {
+            showNotification(t('claude_reset.reset_cooldown_failed'), 'error');
+            return;
+          }
           showNotification(
             t(`claude_reset.${answer.unresolved ? 'unknown' : answer.code}`),
             !answer.unresolved && (answer.code === 'reset' || answer.code === 'already_used')
