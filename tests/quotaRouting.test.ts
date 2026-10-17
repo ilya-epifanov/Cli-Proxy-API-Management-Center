@@ -1,9 +1,13 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
+import { PoolPaceLines } from '@/features/quota/components/QuotaRouting';
 import { classifyQuotaFiles, sortQuotaEntries, type QuotaFileEntry } from '@/features/quota/logic';
 import {
   activeModelCooldowns,
   formatPace,
+  poolPaceLines,
   routingByAuthIndex,
   routingNotes,
   routingRankTitle,
@@ -293,5 +297,112 @@ describe('routingRankTitle', () => {
     expect(routingRankTitle(t, routing.entry, 5)).toBe(
       'Rank 2 of 5 for new sessions. A new session picks one of the accounts marked like this, at random'
     );
+  });
+});
+
+const poolPaceWire = { pace: 0.523, window: 'five-hour', accounts: 3 };
+const throttleWire = { delay_ms: 45_400, threshold: 0.8, floor: 0.05, max_delay_ms: 120_000 };
+
+describe('pool pace and throttle parsing', () => {
+  test('reads both', () => {
+    const pool = parseRoutingRanking(
+      wire([wireEntry()], { pool_pace: poolPaceWire, throttle: throttleWire })
+    ).pools[0];
+    expect(pool.poolPace).toEqual({ pace: 0.523, window: 'five-hour', accounts: 3 });
+    expect(pool.throttle).toEqual({
+      delayMs: 45_400,
+      threshold: 0.8,
+      floor: 0.05,
+      maxDelayMs: 120_000,
+    });
+  });
+
+  test('null and missing (older server) read as null', () => {
+    const missing = parseRoutingRanking(wire([wireEntry()])).pools[0];
+    expect(missing.poolPace).toBeNull();
+    expect(missing.throttle).toBeNull();
+    const nulls = parseRoutingRanking(wire([wireEntry()], { pool_pace: null, throttle: null }))
+      .pools[0];
+    expect(nulls.poolPace).toBeNull();
+    expect(nulls.throttle).toBeNull();
+  });
+
+  test('a pool without data has neither pace nor window', () => {
+    const pool = parseRoutingRanking(
+      wire([wireEntry()], { pool_pace: { pace: null, window: null, accounts: 0 } })
+    ).pools[0];
+    expect(pool.poolPace).toEqual({ pace: null, window: null, accounts: 0 });
+  });
+
+  test.each([
+    ['pace without window', { pool_pace: { ...poolPaceWire, window: null } }],
+    ['window without pace', { pool_pace: { ...poolPaceWire, pace: null } }],
+    ['negative accounts', { pool_pace: { ...poolPaceWire, accounts: -1 } }],
+    ['pool pace not an object', { pool_pace: 0.5 }],
+    ['fractional delay', { throttle: { ...throttleWire, delay_ms: 1.5 } }],
+    ['missing threshold', { throttle: { ...throttleWire, threshold: undefined } }],
+  ])('rejects %s', (_name, extra) => {
+    expect(() => parseRoutingRanking(wire([wireEntry()], extra))).toThrow(ResponseShapeError);
+  });
+});
+
+describe('poolPaceLines', () => {
+  const pools = (claude: Record<string, unknown>, codex: Record<string, unknown> = {}) =>
+    parseRoutingRanking({
+      strategy: 'pace',
+      pools: [
+        { ...wire([]).pools[0], ...claude },
+        { ...wire([]).pools[0], provider: 'codex', model: null, ...codex },
+      ],
+    }).pools;
+
+  test('slowed: pace, window and the delay, in the warning tone', () => {
+    const lines = poolPaceLines(
+      t,
+      pools({ pool_pace: poolPaceWire, throttle: throttleWire }),
+      'claude'
+    );
+    expect(lines).toEqual([
+      {
+        provider: 'claude',
+        text: 'Claude pool: pace 0.5× on 5-hour limit · requests slowed by 45 s',
+        title: expect.stringContaining('Pool pace'),
+        warn: true,
+      },
+    ]);
+  });
+
+  test('throttle idle, throttle off and no data', () => {
+    const lines = poolPaceLines(
+      t,
+      pools(
+        { pool_pace: { ...poolPaceWire, pace: 1.3 }, throttle: { ...throttleWire, delay_ms: 0 } },
+        { pool_pace: { pace: null, window: null, accounts: 0 } }
+      ),
+      'all'
+    );
+    expect(lines.map((line) => [line.text, line.warn])).toEqual([
+      ['Claude pool: pace 1.3× on 5-hour limit · slows requests when below 0.8×', false],
+      ['Codex pool: no quota data yet', false],
+    ]);
+  });
+
+  test('skips pools without a pool pace and providers the tab hides', () => {
+    expect(poolPaceLines(t, pools({}, { pool_pace: poolPaceWire }), 'claude')).toEqual([]);
+    expect(poolPaceLines(t, pools({}), 'all')).toEqual([]);
+  });
+
+  test('renders one line per pool, nothing without lines', () => {
+    const html = renderToStaticMarkup(
+      createElement(PoolPaceLines, {
+        pools: pools({ pool_pace: poolPaceWire, throttle: throttleWire }),
+        tab: 'all',
+      })
+    );
+    expect(html).toContain('Claude pool: pace 0.5× on 5-hour limit · requests slowed by 45 s');
+    expect(html.match(/<p /g)).toHaveLength(1);
+    expect(
+      renderToStaticMarkup(createElement(PoolPaceLines, { pools: pools({}), tab: 'all' }))
+    ).toBe('');
   });
 });

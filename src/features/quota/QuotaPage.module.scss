@@ -200,6 +200,14 @@
   }
 }
 
+/* Pool pace per provider, in the cards' routing-line style. */
+.poolPace {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .errorBanner {
   font-size: 12.5px;
   line-height: 1.5;

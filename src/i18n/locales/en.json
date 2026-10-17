@@ -1581,7 +1581,12 @@
     "not_routed_unavailable": "not used: unavailable",
     "model_cooldown": "{{model}} cooling down, back {{when}}",
     "rank_model_prefix": "Claude rank for",
-    "rank_model_any": "any model"
+    "rank_model_any": "any model",
+    "pool_pace": "{{provider}} pool: pace {{pace}} on {{window}}",
+    "pool_pace_unknown": "{{provider}} pool: no quota data yet",
+    "pool_slowed": "requests slowed by {{seconds}} s",
+    "pool_throttle_idle": "slows requests when below {{threshold}}",
+    "pool_pace_title": "Pool pace: quota left divided by time left, summed over the accounts that can take requests now, on the window most behind schedule. 1× is on schedule. Below the throttle threshold, every new request waits before it is sent, longer the further behind the pool is."
   },
   "quota_management": {
     "refreshed_just_now": "just now",

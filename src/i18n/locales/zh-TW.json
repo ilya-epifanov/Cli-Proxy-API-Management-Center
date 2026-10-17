@@ -1608,7 +1608,12 @@
     "not_routed_unavailable": "不使用：無法使用",
     "model_cooldown": "{{model}} 冷卻中，{{when}}恢復",
     "rank_model_prefix": "Claude 排名依據",
-    "rank_model_any": "任意模型"
+    "rank_model_any": "任意模型",
+    "pool_pace": "{{provider}} 帳戶池：{{window}} 節奏 {{pace}}",
+    "pool_pace_unknown": "{{provider}} 帳戶池：尚無額度資料",
+    "pool_slowed": "請求已放慢 {{seconds}} 秒",
+    "pool_throttle_idle": "低於 {{threshold}} 時放慢請求",
+    "pool_pace_title": "帳戶池節奏：目前可接收請求的帳戶的剩餘額度總和除以剩餘時間總和，取最落後於計畫的視窗。1× 表示符合計畫。低於限速門檻時，每個新請求在送出前都會等待，帳戶池越落後等待越久。"
   },
   "quota_management": {
     "refreshed_just_now": "剛剛",

@@ -1581,7 +1581,12 @@
     "not_routed_unavailable": "사용 안 함: 사용할 수 없음",
     "model_cooldown": "{{model}} 쿨다운 중, {{when}} 복구",
     "rank_model_prefix": "Claude 순위 기준",
-    "rank_model_any": "모든 모델"
+    "rank_model_any": "모든 모델",
+    "pool_pace": "{{provider}} 풀: {{window}} 속도 {{pace}}",
+    "pool_pace_unknown": "{{provider}} 풀: 아직 할당량 데이터 없음",
+    "pool_slowed": "요청이 {{seconds}}초 지연됨",
+    "pool_throttle_idle": "{{threshold}} 미만에서 요청 지연",
+    "pool_pace_title": "풀 속도: 지금 요청을 받을 수 있는 계정들의 남은 할당량 합을 남은 시간 합으로 나눈 값으로, 일정보다 가장 뒤처진 창을 기준으로 합니다. 1×는 일정대로입니다. 지연 임계값보다 낮으면 모든 새 요청이 전송 전에 대기하며, 풀이 뒤처질수록 더 오래 기다립니다."
   },
   "quota_management": {
     "refreshed_just_now": "방금",

@@ -26,6 +26,7 @@ import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
+import { PoolPaceLines } from './components/QuotaRouting';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import {
   CARD_ENTRANCE_BUDGET_MS,
@@ -459,6 +460,8 @@ export function QuotaPage() {
             </div>
           </div>
         </div>
+
+        {ranking && <PoolPaceLines pools={ranking.pools} tab={tab} className={styles.poolPace} />}
 
         {error && (
           <div className={styles.errorBanner} role="alert">

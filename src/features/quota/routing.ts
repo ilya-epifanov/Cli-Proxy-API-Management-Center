@@ -5,10 +5,11 @@
 
 import type { TFunction } from 'i18next';
 import type { NotCandidate, PoolRanking, RankEntry } from '@/services/api';
+import { getTypeLabel } from '@/features/authFiles/constants';
 import type { AuthFileItem } from '@/types';
 import { cooldownRemainingSeconds } from '@/features/authFiles/cooldowns';
 import { formatRelativeInstant } from '@/utils/quota/relativeTime';
-import { QUOTA_TAB_ORDER } from './constants';
+import { QUOTA_TAB_ORDER, type QuotaTabId } from './constants';
 import type { QuotaFileEntry } from './logic';
 
 /** Where the selector puts one account. */
@@ -163,4 +164,55 @@ export function routingNotes(
     warn: true,
   }));
   return [...notes, ...cooldowns];
+}
+
+export interface PoolPaceLine {
+  provider: string;
+  text: string;
+  title: string;
+  /** Requests are being slowed: shown in the warning colour. */
+  warn: boolean;
+}
+
+/**
+ * One line per pool the pace strategy reports, for the providers the tab shows: the pool pace
+ * and the window that sets it, then what the throttle does at that pace.
+ */
+export function poolPaceLines(
+  t: TFunction,
+  pools: readonly PoolRanking[],
+  tab: QuotaTabId
+): PoolPaceLine[] {
+  return pools.flatMap((pool) => {
+    const { poolPace, throttle } = pool;
+    if (poolPace === null || (tab !== 'all' && tab !== pool.provider)) return [];
+    const provider = getTypeLabel(t, pool.provider);
+    const parts = [
+      poolPace.pace === null
+        ? t('quota_routing.pool_pace_unknown', { provider })
+        : t('quota_routing.pool_pace', {
+            provider,
+            pace: formatPace(poolPace.pace),
+            window: windowLabel(t, poolPace.window),
+          }),
+    ];
+    const slowed = throttle !== null && throttle.delayMs > 0;
+    if (throttle !== null) {
+      parts.push(
+        slowed
+          ? t('quota_routing.pool_slowed', {
+              seconds: Math.max(1, Math.round(throttle.delayMs / 1000)),
+            })
+          : t('quota_routing.pool_throttle_idle', { threshold: formatPace(throttle.threshold) })
+      );
+    }
+    return [
+      {
+        provider: pool.provider,
+        text: parts.join(' · '),
+        title: t('quota_routing.pool_pace_title'),
+        warn: slowed,
+      },
+    ];
+  });
 }

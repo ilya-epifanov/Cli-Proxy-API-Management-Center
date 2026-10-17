@@ -1580,7 +1580,12 @@
     "not_routed_unavailable": "不使用：不可用",
     "model_cooldown": "{{model}} 冷却中，{{when}}恢复",
     "rank_model_prefix": "Claude 排名依据",
-    "rank_model_any": "任意模型"
+    "rank_model_any": "任意模型",
+    "pool_pace": "{{provider}} 账户池：{{window}} 节奏 {{pace}}",
+    "pool_pace_unknown": "{{provider}} 账户池：暂无额度数据",
+    "pool_slowed": "请求已放慢 {{seconds}} 秒",
+    "pool_throttle_idle": "低于 {{threshold}} 时放慢请求",
+    "pool_pace_title": "账户池节奏：当前可接收请求的账户的剩余额度之和除以剩余时间之和，取最落后于计划的窗口。1× 表示符合计划。低于限速阈值时，每个新请求在发送前都会等待，账户池越落后等待越久。"
   },
   "quota_management": {
     "refreshed_just_now": "刚刚",

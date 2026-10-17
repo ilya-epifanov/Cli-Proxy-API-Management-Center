@@ -1538,7 +1538,12 @@
     "not_routed_unavailable": "không dùng: không khả dụng",
     "model_cooldown": "{{model}} đang tạm nghỉ, trở lại {{when}}",
     "rank_model_prefix": "Hạng Claude cho",
-    "rank_model_any": "mọi mô hình"
+    "rank_model_any": "mọi mô hình",
+    "pool_pace": "Nhóm {{provider}}: nhịp {{pace}} trên {{window}}",
+    "pool_pace_unknown": "Nhóm {{provider}}: chưa có dữ liệu quota",
+    "pool_slowed": "yêu cầu bị chậm lại {{seconds}} giây",
+    "pool_throttle_idle": "làm chậm yêu cầu khi dưới {{threshold}}",
+    "pool_pace_title": "Nhịp của nhóm: tổng quota còn lại chia cho tổng thời gian còn lại của các tài khoản đang nhận được yêu cầu, trên cửa sổ chậm nhất so với kế hoạch. 1× là đúng kế hoạch. Dưới ngưỡng giới hạn, mỗi yêu cầu mới phải chờ trước khi gửi, nhóm càng chậm thì chờ càng lâu."
   },
   "quota_management": {
     "refreshed_just_now": "vừa xong",
