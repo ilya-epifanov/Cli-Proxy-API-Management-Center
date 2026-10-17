@@ -1623,7 +1623,12 @@
     "not_routed_unavailable": "kullanılmıyor: erişilemiyor",
     "model_cooldown": "{{model}} soğumada, {{when}} geri gelir",
     "rank_model_prefix": "Claude sırası, model:",
-    "rank_model_any": "herhangi bir model"
+    "rank_model_any": "herhangi bir model",
+    "pool_pace": "{{provider}} havuzu: {{window}} için hız {{pace}}",
+    "pool_pace_unknown": "{{provider}} havuzu: henüz kota verisi yok",
+    "pool_slowed": "istekler {{seconds}} sn yavaşlatıldı",
+    "pool_throttle_idle": "{{threshold}} altına düşünce istekleri yavaşlatır",
+    "pool_pace_title": "Havuz hızı: şu anda istek alabilen hesaplar üzerinden toplanan kalan kotanın kalan süreye oranı, plandan en çok geride olan pencerede. 1× plana uygundur. Kısma eşiğinin altında her yeni istek gönderilmeden önce bekler; havuz ne kadar gerideyse o kadar uzun."
   },
   "quota_management": {
     "refreshed_just_now": "az önce",
