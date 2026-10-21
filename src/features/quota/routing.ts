@@ -4,7 +4,7 @@
  */
 
 import type { TFunction } from 'i18next';
-import type { NotCandidate, PoolRanking, RankEntry } from '@/services/api';
+import type { NotCandidate, PoolRanking, PoolRunway, RankEntry } from '@/services/api';
 import { getTypeLabel } from '@/features/authFiles/constants';
 import type { AuthFileItem } from '@/types';
 import { cooldownRemainingSeconds } from '@/features/authFiles/cooldowns';
@@ -166,7 +166,7 @@ export function routingNotes(
   return [...notes, ...cooldowns];
 }
 
-export interface PoolPaceLine {
+export interface PoolRunwayLine {
   provider: string;
   text: string;
   title: string;
@@ -175,44 +175,63 @@ export interface PoolPaceLine {
 }
 
 /**
- * One line per pool the pace strategy reports, for the providers the tab shows: the pool pace
- * and the window that sets it, then what the throttle does at that pace.
+ * One line per pool the pace strategy reports a runway for, for the providers the tab shows:
+ * whether the pool lasts the week, then what the throttle does about it.
  */
-export function poolPaceLines(
+export function poolRunwayLines(
   t: TFunction,
   pools: readonly PoolRanking[],
-  tab: QuotaTabId
-): PoolPaceLine[] {
+  tab: QuotaTabId,
+  nowMs: number,
+  locale: string
+): PoolRunwayLine[] {
   return pools.flatMap((pool) => {
-    const { poolPace, throttle } = pool;
-    if (poolPace === null || (tab !== 'all' && tab !== pool.provider)) return [];
+    const { runway } = pool;
+    if (runway === null || (tab !== 'all' && tab !== pool.provider)) return [];
     const provider = getTypeLabel(t, pool.provider);
-    const parts = [
-      poolPace.pace === null
-        ? t('quota_routing.pool_pace_unknown', { provider })
-        : t('quota_routing.pool_pace', {
-            provider,
-            pace: formatPace(poolPace.pace),
-            window: windowLabel(t, poolPace.window),
-          }),
-    ];
-    const slowed = throttle !== null && throttle.delayMs > 0;
-    if (throttle !== null) {
+    const slowed = runway.delayMs > 0;
+    const parts = [runwayStatus(t, runway, provider, nowMs, locale)];
+    if (runway.maxDelayMs === 0) parts.push(t('quota_routing.runway_throttle_off'));
+    else if (slowed) {
       parts.push(
-        slowed
-          ? t('quota_routing.pool_slowed', {
-              seconds: Math.max(1, Math.round(throttle.delayMs / 1000)),
-            })
-          : t('quota_routing.pool_throttle_idle', { threshold: formatPace(throttle.threshold) })
+        t('quota_routing.runway_slowed', {
+          seconds: Math.max(1, Math.round(runway.delayMs / 1000)),
+        })
       );
+    } else parts.push(t('quota_routing.runway_no_delay'));
+    if (runway.unsized.length > 0) {
+      const window = runway.unsized.map((id) => windowLabel(t, id)).join(', ');
+      parts.push(t('quota_routing.runway_unsized', { window }));
     }
     return [
       {
         provider: pool.provider,
         text: parts.join(' · '),
-        title: t('quota_routing.pool_pace_title'),
+        title: t('quota_routing.runway_title'),
         warn: slowed,
       },
     ];
   });
+}
+
+function runwayStatus(
+  t: TFunction,
+  runway: PoolRunway,
+  provider: string,
+  nowMs: number,
+  locale: string
+): string {
+  switch (runway.reason) {
+    case 'clear':
+      return t('quota_routing.runway_clear', { provider });
+    case 'short':
+      return t('quota_routing.runway_short', {
+        provider,
+        when: formatRelativeInstant(runway.dryAt, nowMs, locale),
+      });
+    case 'reserve':
+      return t('quota_routing.runway_reserve', { provider });
+    case 'learning':
+      return t('quota_routing.runway_learning', { provider });
+  }
 }

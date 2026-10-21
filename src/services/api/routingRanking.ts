@@ -58,25 +58,38 @@ export interface NotCandidate {
   until: number | null;
 }
 
-/**
- * The pool's pace: quota left over time left, summed over the accounts that can serve now
- * (not cooling down, no used-up window, with quota data), on the window most behind schedule.
- */
-export type PoolPace =
-  | { accounts: number; pace: number; window: string }
-  /** No usable account has quota data. */
-  | { accounts: number; pace: null; window: null };
+export const RUNWAY_REASONS = ['clear', 'short', 'reserve', 'learning'] as const;
+export type RunwayReason = (typeof RUNWAY_REASONS)[number];
 
-/** The strategy's request throttle: requests wait while the pool pace is below the threshold. */
-export interface PoolThrottle {
-  /** What each new request for this pool waits now. */
+interface RunwayBase {
+  /** What each new request for this pool waits now; 0 when the throttle is off. */
   delayMs: number;
-  /** Pool pace below which requests start to wait. */
-  threshold: number;
-  /** Pool pace at and below which requests wait the full maximum. */
-  floor: number;
+  /** When the pool runs out at full speed, epoch ms; null when it lasts the week. */
+  dryAt: number | null;
+  /** Accounts the plan counts. */
+  accounts: number;
+  /** Forecast demand, cost units per hour. */
+  demandPerHour: number;
+  /** The longest a request waits; 0 means the throttle is off. */
   maxDelayMs: number;
+  /** Short windows not sized yet, left out of the plan. */
+  unsized: string[];
 }
+
+/**
+ * Whether the pool lasts the next 7 days at the forecast demand, and how much the throttle
+ * slows requests to make it:
+ * - `clear`: it lasts; no delay.
+ * - `short`: it runs dry at `dryAt` at full speed; requests run at `speed` of their normal rate.
+ * - `reserve`: the accounts that can serve now hold under ~2 hours of demand; requests wait the
+ *   maximum.
+ * - `learning`: no account has spent enough of its weekly window to size it; the throttle does
+ *   nothing.
+ */
+export type PoolRunway =
+  | (RunwayBase & { reason: 'clear' | 'reserve'; speed: number; window: string })
+  | (RunwayBase & { reason: 'short'; speed: number; window: string; dryAt: number })
+  | (RunwayBase & { reason: 'learning'; speed: null; window: null });
 
 export interface PoolRanking {
   provider: string;
@@ -87,10 +100,8 @@ export interface PoolRanking {
   longWindows: string[];
   entries: RankEntry[];
   notCandidates: NotCandidate[];
-  /** null when the strategy is not pace, or the server predates the pool pace. */
-  poolPace: PoolPace | null;
-  /** null when throttling is off, or the server predates it. */
-  throttle: PoolThrottle | null;
+  /** null when the strategy is not pace, or the server predates the runway. */
+  runway: PoolRunway | null;
 }
 
 export interface RoutingRanking {
@@ -102,6 +113,11 @@ const reader = new ShapeReader('GET /routing/ranking');
 
 const finite = (value: unknown, path: string): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : reader.fail(path, 'a number');
+
+const nonNegative = (value: unknown, path: string): number => {
+  const number = finite(value, path);
+  return number >= 0 ? number : reader.fail(path, 'a non-negative number');
+};
 
 const integer = (value: unknown, path: string): number =>
   typeof value === 'number' && Number.isSafeInteger(value)
@@ -150,28 +166,34 @@ const parseEntry = (value: unknown, path: string): RankEntry => {
   }
 };
 
-const parsePoolPace = (value: unknown, path: string): PoolPace => {
+const parseRunway = (value: unknown, path: string): PoolRunway => {
   const raw = reader.record(value, path);
-  const accounts = reader.count(raw.accounts, `${path}.accounts`);
-  if (raw.pace === null || raw.pace === undefined) {
-    if (raw.window !== null && raw.window !== undefined) reader.fail(`${path}.window`, 'null');
-    return { accounts, pace: null, window: null };
-  }
-  return {
-    accounts,
-    pace: finite(raw.pace, `${path}.pace`),
-    window: reader.string(raw.window, `${path}.window`),
-  };
-};
-
-const parseThrottle = (value: unknown, path: string): PoolThrottle => {
-  const raw = reader.record(value, path);
-  return {
+  const base: RunwayBase = {
     delayMs: reader.count(raw.delay_ms, `${path}.delay_ms`),
-    threshold: finite(raw.threshold, `${path}.threshold`),
-    floor: finite(raw.floor, `${path}.floor`),
+    dryAt: nullable(raw.dry_at, (v) => reader.instant(v, `${path}.dry_at`)),
+    accounts: reader.count(raw.accounts, `${path}.accounts`),
+    demandPerHour: nonNegative(raw.demand_per_hour, `${path}.demand_per_hour`),
     maxDelayMs: reader.count(raw.max_delay_ms, `${path}.max_delay_ms`),
+    unsized: strings(raw.unsized, `${path}.unsized`),
   };
+  const reason = reader.oneOf(raw.reason, RUNWAY_REASONS, `${path}.reason`);
+  if (reason === 'learning') {
+    if (raw.speed !== null && raw.speed !== undefined)
+      reader.fail(`${path}.speed`, 'null while learning');
+    if (raw.window !== null && raw.window !== undefined)
+      reader.fail(`${path}.window`, 'null while learning');
+    return { ...base, reason, speed: null, window: null };
+  }
+  const speed = finite(raw.speed, `${path}.speed`);
+  if (speed < 0 || speed > 1) reader.fail(`${path}.speed`, 'a number between 0 and 1');
+  const window = reader.string(raw.window, `${path}.window`);
+  if (reason === 'short') {
+    const { dryAt } = base;
+    if (dryAt === null)
+      return reader.fail(`${path}.dry_at`, 'a timestamp when the pool runs short');
+    return { ...base, reason, speed, window, dryAt };
+  }
+  return { ...base, reason, speed, window };
 };
 
 const parsePool = (value: unknown, path: string): PoolRanking => {
@@ -193,8 +215,7 @@ const parsePool = (value: unknown, path: string): PoolRanking => {
         until: nullable(nc.until, (v) => reader.instant(v, `${itemPath}.until`)),
       };
     }),
-    poolPace: nullable(raw.pool_pace, (v) => parsePoolPace(v, `${path}.pool_pace`)),
-    throttle: nullable(raw.throttle, (v) => parseThrottle(v, `${path}.throttle`)),
+    runway: nullable(raw.runway, (v) => parseRunway(v, `${path}.runway`)),
   };
 };
 
