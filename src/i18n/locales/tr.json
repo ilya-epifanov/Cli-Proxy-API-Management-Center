@@ -1624,11 +1624,15 @@
     "model_cooldown": "{{model}} soğumada, {{when}} geri gelir",
     "rank_model_prefix": "Claude sırası, model:",
     "rank_model_any": "herhangi bir model",
-    "pool_pace": "{{provider}} havuzu: {{window}} için hız {{pace}}",
-    "pool_pace_unknown": "{{provider}} havuzu: henüz kota verisi yok",
-    "pool_slowed": "istekler {{seconds}} sn yavaşlatıldı",
-    "pool_throttle_idle": "{{threshold}} altına düşünce istekleri yavaşlatır",
-    "pool_pace_title": "Havuz hızı: şu anda istek alabilen hesaplar üzerinden toplanan kalan kotanın kalan süreye oranı, plandan en çok geride olan pencerede. 1× plana uygundur. Kısma eşiğinin altında her yeni istek gönderilmeden önce bekler; havuz ne kadar gerideyse o kadar uzun."
+    "runway_clear": "{{provider}} havuzu: bu hızla hafta boyunca yeter",
+    "runway_short": "{{provider}} havuzu: bu hızla {{when}} tükenir",
+    "runway_reserve": "{{provider}} havuzu: neredeyse boş",
+    "runway_learning": "{{provider}} havuzu: kota kullanımdan ölçülüyor",
+    "runway_no_delay": "gecikme yok",
+    "runway_slowed": "istekler {{seconds}} sn yavaşlatıldı",
+    "runway_throttle_off": "kısma kapalı",
+    "runway_unsized": "{{window}} henüz ölçülmedi",
+    "runway_title": "Pist: tahmini talep (son saat, son gün, son hafta), önümüzdeki 7 gün boyunca haftalık penceresi ilk sıfırlanan hesaplardan harcanır ve her 5 saatlik pencereyle sınırlanır. Her hesabın kotası, penceresi başladığından beri harcadığı kullanımdan ölçülür. İstekler yalnızca havuzun tükenmesini önleyecek kadar yavaşlatılır; şu anda hizmet verebilen hesaplar 2 saatten az talep tuttuğu sürece her istek en uzun süre bekler."
   },
   "quota_management": {
     "refreshed_just_now": "az önce",

@@ -2,12 +2,12 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
-import { PoolPaceLines } from '@/features/quota/components/QuotaRouting';
+import { PoolRunwayLines } from '@/features/quota/components/QuotaRouting';
 import { classifyQuotaFiles, sortQuotaEntries, type QuotaFileEntry } from '@/features/quota/logic';
 import {
   activeModelCooldowns,
   formatPace,
-  poolPaceLines,
+  poolRunwayLines,
   routingByAuthIndex,
   routingNotes,
   routingRankTitle,
@@ -300,53 +300,96 @@ describe('routingRankTitle', () => {
   });
 });
 
-const poolPaceWire = { pace: 0.523, window: 'five-hour', accounts: 3 };
-const throttleWire = { delay_ms: 45_400, threshold: 0.8, floor: 0.05, max_delay_ms: 120_000 };
+const runwayWire = {
+  reason: 'short',
+  speed: 0.84,
+  delay_ms: 6542,
+  dry_at: '2026-10-19T21:03:16Z',
+  window: 'seven-day',
+  accounts: 5,
+  demand_per_hour: 31.6,
+  max_delay_ms: 120_000,
+  unsized: [],
+};
 
-describe('pool pace and throttle parsing', () => {
-  test('reads both', () => {
-    const pool = parseRoutingRanking(
-      wire([wireEntry()], { pool_pace: poolPaceWire, throttle: throttleWire })
-    ).pools[0];
-    expect(pool.poolPace).toEqual({ pace: 0.523, window: 'five-hour', accounts: 3 });
-    expect(pool.throttle).toEqual({
-      delayMs: 45_400,
-      threshold: 0.8,
-      floor: 0.05,
+describe('runway parsing', () => {
+  test('reads a short runway', () => {
+    const pool = parseRoutingRanking(wire([wireEntry()], { runway: runwayWire })).pools[0];
+    expect(pool.runway).toEqual({
+      reason: 'short',
+      speed: 0.84,
+      delayMs: 6542,
+      dryAt: Date.parse('2026-10-19T21:03:16Z'),
+      window: 'seven-day',
+      accounts: 5,
+      demandPerHour: 31.6,
       maxDelayMs: 120_000,
+      unsized: [],
+    });
+  });
+
+  test('a clear runway has no dry date', () => {
+    const pool = parseRoutingRanking(
+      wire([wireEntry()], {
+        runway: { ...runwayWire, reason: 'clear', speed: 1, delay_ms: 0, dry_at: null },
+      })
+    ).pools[0];
+    expect(pool.runway).toMatchObject({ reason: 'clear', speed: 1, delayMs: 0, dryAt: null });
+  });
+
+  test('a learning runway has neither speed nor window', () => {
+    const pool = parseRoutingRanking(
+      wire([wireEntry()], {
+        runway: {
+          ...runwayWire,
+          reason: 'learning',
+          speed: null,
+          window: null,
+          delay_ms: 0,
+          dry_at: null,
+          unsized: ['five-hour'],
+        },
+      })
+    ).pools[0];
+    expect(pool.runway).toMatchObject({
+      reason: 'learning',
+      speed: null,
+      window: null,
+      unsized: ['five-hour'],
     });
   });
 
   test('null and missing (older server) read as null', () => {
-    const missing = parseRoutingRanking(wire([wireEntry()])).pools[0];
-    expect(missing.poolPace).toBeNull();
-    expect(missing.throttle).toBeNull();
-    const nulls = parseRoutingRanking(wire([wireEntry()], { pool_pace: null, throttle: null }))
-      .pools[0];
-    expect(nulls.poolPace).toBeNull();
-    expect(nulls.throttle).toBeNull();
+    expect(parseRoutingRanking(wire([wireEntry()])).pools[0].runway).toBeNull();
+    expect(parseRoutingRanking(wire([wireEntry()], { runway: null })).pools[0].runway).toBeNull();
   });
 
-  test('a pool without data has neither pace nor window', () => {
-    const pool = parseRoutingRanking(
-      wire([wireEntry()], { pool_pace: { pace: null, window: null, accounts: 0 } })
-    ).pools[0];
-    expect(pool.poolPace).toEqual({ pace: null, window: null, accounts: 0 });
-  });
-
+  const learning = { reason: 'learning', speed: null, window: null, dry_at: null };
   test.each([
-    ['pace without window', { pool_pace: { ...poolPaceWire, window: null } }],
-    ['window without pace', { pool_pace: { ...poolPaceWire, pace: null } }],
-    ['negative accounts', { pool_pace: { ...poolPaceWire, accounts: -1 } }],
-    ['pool pace not an object', { pool_pace: 0.5 }],
-    ['fractional delay', { throttle: { ...throttleWire, delay_ms: 1.5 } }],
-    ['missing threshold', { throttle: { ...throttleWire, threshold: undefined } }],
-  ])('rejects %s', (_name, extra) => {
-    expect(() => parseRoutingRanking(wire([wireEntry()], extra))).toThrow(ResponseShapeError);
+    ['unknown reason', { reason: 'late' }],
+    ['speed null while not learning', { speed: null }],
+    ['window null while not learning', { window: null }],
+    ['speed while learning', { ...learning, speed: 0.5 }],
+    ['window while learning', { ...learning, window: 'seven-day' }],
+    ['speed above 1', { speed: 1.2 }],
+    ['negative speed', { speed: -0.1 }],
+    ['short without a dry date', { dry_at: null }],
+    ['malformed dry date', { dry_at: 'tomorrow' }],
+    ['fractional delay', { delay_ms: 1.5 }],
+    ['negative delay', { delay_ms: -1 }],
+    ['missing max delay', { max_delay_ms: undefined }],
+    ['negative accounts', { accounts: -1 }],
+    ['negative demand', { demand_per_hour: -1 }],
+    ['unsized not an array', { unsized: 'five-hour' }],
+    ['unsized with a non-string', { unsized: [5] }],
+    ['runway not an object', 0.5],
+  ])('rejects %s', (_name, override) => {
+    const runway = typeof override === 'object' ? { ...runwayWire, ...override } : override;
+    expect(() => parseRoutingRanking(wire([wireEntry()], { runway }))).toThrow(ResponseShapeError);
   });
 });
 
-describe('poolPaceLines', () => {
+describe('poolRunwayLines', () => {
   const pools = (claude: Record<string, unknown>, codex: Record<string, unknown> = {}) =>
     parseRoutingRanking({
       strategy: 'pace',
@@ -355,54 +398,102 @@ describe('poolPaceLines', () => {
         { ...wire([]).pools[0], provider: 'codex', model: null, ...codex },
       ],
     }).pools;
+  const lines = (runway: Record<string, unknown>, tab: 'all' | 'claude' = 'claude') =>
+    poolRunwayLines(t, pools({ runway: { ...runwayWire, ...runway } }), tab, now, 'en');
+  const text = (runway: Record<string, unknown>) => lines(runway).map((line) => line.text);
 
-  test('slowed: pace, window and the delay, in the warning tone', () => {
-    const lines = poolPaceLines(
-      t,
-      pools({ pool_pace: poolPaceWire, throttle: throttleWire }),
-      'claude'
-    );
-    expect(lines).toEqual([
+  test('short: time to dry, the delay, in the warning tone', () => {
+    expect(lines({ dry_at: '2026-10-19T12:00:00Z' })).toEqual([
       {
         provider: 'claude',
-        text: 'Claude pool: pace 0.5× on 5-hour limit · requests slowed by 45 s',
-        title: expect.stringContaining('Pool pace'),
+        text: 'Claude pool: runs out in 6 days at this rate · requests slowed by 7 s',
+        title: expect.stringContaining('Runway: the forecast demand'),
         warn: true,
       },
     ]);
   });
 
-  test('throttle idle, throttle off and no data', () => {
-    const lines = poolPaceLines(
-      t,
-      pools(
-        { pool_pace: { ...poolPaceWire, pace: 1.3 }, throttle: { ...throttleWire, delay_ms: 0 } },
-        { pool_pace: { pace: null, window: null, accounts: 0 } }
-      ),
-      'all'
-    );
-    expect(lines.map((line) => [line.text, line.warn])).toEqual([
-      ['Claude pool: pace 1.3× on 5-hour limit · slows requests when below 0.8×', false],
-      ['Codex pool: no quota data yet', false],
+  test('short: the time to dry is as coarse as on the cards', () => {
+    expect(text({ dry_at: '2026-10-13T12:40:00Z' })[0]).toContain('runs out in 40 minutes');
+    expect(text({ dry_at: '2026-10-13T17:30:00Z' })[0]).toContain('runs out in 5 hours');
+  });
+
+  test('clear: lasts the week, no delay, no warning', () => {
+    const [line] = lines({ reason: 'clear', speed: 1, delay_ms: 0, dry_at: null });
+    expect(line.text).toBe('Claude pool: lasts the week at this rate · no delay');
+    expect(line.warn).toBe(false);
+  });
+
+  test('reserve: the maximum wait, in the warning tone', () => {
+    const [line] = lines({ reason: 'reserve', speed: 0, delay_ms: 120_000 });
+    expect(line.text).toBe('Claude pool: almost empty · requests slowed by 120 s');
+    expect(line.warn).toBe(true);
+  });
+
+  test('learning: no delay, no warning', () => {
+    const [line] = lines({
+      reason: 'learning',
+      speed: null,
+      window: null,
+      delay_ms: 0,
+      dry_at: null,
+    });
+    expect(line.text).toBe('Claude pool: sizing quota from usage · no delay');
+    expect(line.warn).toBe(false);
+  });
+
+  test('a delay under half a second still reads as 1 s', () => {
+    expect(text({ delay_ms: 200 })[0]).toEndWith('requests slowed by 1 s');
+  });
+
+  test('throttle off replaces the delay part for every reason', () => {
+    const off = { max_delay_ms: 0, delay_ms: 0 };
+    expect(text({ ...off, dry_at: '2026-10-19T12:00:00Z' })).toEqual([
+      'Claude pool: runs out in 6 days at this rate · throttle off',
+    ]);
+    expect(text({ ...off, reason: 'clear', speed: 1, dry_at: null })).toEqual([
+      'Claude pool: lasts the week at this rate · throttle off',
+    ]);
+    expect(text({ ...off, reason: 'reserve', speed: 0 })).toEqual([
+      'Claude pool: almost empty · throttle off',
+    ]);
+    expect(text({ ...off, reason: 'learning', speed: null, window: null, dry_at: null })).toEqual([
+      'Claude pool: sizing quota from usage · throttle off',
     ]);
   });
 
-  test('skips pools without a pool pace and providers the tab hides', () => {
-    expect(poolPaceLines(t, pools({}, { pool_pace: poolPaceWire }), 'claude')).toEqual([]);
-    expect(poolPaceLines(t, pools({}), 'all')).toEqual([]);
+  test('unsized windows are named at the end', () => {
+    expect(
+      text({ reason: 'clear', speed: 1, delay_ms: 0, dry_at: null, unsized: ['five-hour'] })
+    ).toEqual(['Claude pool: lasts the week at this rate · no delay · 5-hour limit not sized yet']);
+    expect(text({ max_delay_ms: 0, delay_ms: 0, unsized: ['five-hour'] })[0]).toEndWith(
+      'throttle off · 5-hour limit not sized yet'
+    );
+  });
+
+  test('skips pools without a runway and providers the tab hides', () => {
+    expect(poolRunwayLines(t, pools({}, { runway: runwayWire }), 'claude', now, 'en')).toEqual([]);
+    expect(poolRunwayLines(t, pools({}), 'all', now, 'en')).toEqual([]);
+    const both = poolRunwayLines(
+      t,
+      pools({ runway: runwayWire }, { runway: { ...runwayWire, reason: 'clear', dry_at: null } }),
+      'all',
+      now,
+      'en'
+    );
+    expect(both.map((line) => line.provider)).toEqual(['claude', 'codex']);
   });
 
   test('renders one line per pool, nothing without lines', () => {
+    // The component reads the shared clock, so keep the text clear of the dry date.
+    const clear = { ...runwayWire, reason: 'clear', speed: 1, delay_ms: 0, dry_at: null };
     const html = renderToStaticMarkup(
-      createElement(PoolPaceLines, {
-        pools: pools({ pool_pace: poolPaceWire, throttle: throttleWire }),
-        tab: 'all',
-      })
+      createElement(PoolRunwayLines, { pools: pools({ runway: clear }), tab: 'all' })
     );
-    expect(html).toContain('Claude pool: pace 0.5× on 5-hour limit · requests slowed by 45 s');
+    expect(html).toContain('Claude pool: lasts the week at this rate · no delay');
     expect(html.match(/<p /g)).toHaveLength(1);
     expect(
-      renderToStaticMarkup(createElement(PoolPaceLines, { pools: pools({}), tab: 'all' }))
+      renderToStaticMarkup(createElement(PoolRunwayLines, { pools: pools({}), tab: 'all' }))
     ).toBe('');
   });
 });
