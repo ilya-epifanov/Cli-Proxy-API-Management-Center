@@ -8,7 +8,7 @@ import { useNow } from '@/hooks/useNow';
 import type { PoolRanking } from '@/services/api';
 import type { AuthFileItem } from '@/types';
 import type { QuotaTabId } from '../constants';
-import { poolPaceLines, routingNotes, routingRankTitle, type CardRouting } from '../routing';
+import { poolRunwayLines, routingNotes, routingRankTitle, type CardRouting } from '../routing';
 import styles from './QuotaCard.module.scss';
 
 /** `#2/5`, highlighted when a new session may land on this account. */
@@ -50,8 +50,8 @@ export function RoutingNotes({ routing, file }: { routing: CardRouting; file: Au
   );
 }
 
-/** Pool pace per provider the tab shows, and whether the throttle slows requests now. */
-export function PoolPaceLines({
+/** Pool runway per provider the tab shows, and whether the throttle slows requests now. */
+export function PoolRunwayLines({
   pools,
   tab,
   className,
@@ -60,8 +60,9 @@ export function PoolPaceLines({
   tab: QuotaTabId;
   className?: string;
 }) {
-  const { t } = useTranslation();
-  const lines = poolPaceLines(t, pools, tab);
+  const { t, i18n } = useTranslation();
+  const now = useNow();
+  const lines = poolRunwayLines(t, pools, tab, now, i18n.language);
   if (lines.length === 0) return null;
   return (
     <div className={className}>

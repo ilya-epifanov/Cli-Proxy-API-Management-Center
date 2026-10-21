@@ -1617,11 +1617,15 @@
     "model_cooldown": "{{model}} 冷却中，{{when}}恢复",
     "rank_model_prefix": "Claude 排名依据",
     "rank_model_any": "任意模型",
-    "pool_pace": "{{provider}} 账户池：{{window}} 节奏 {{pace}}",
-    "pool_pace_unknown": "{{provider}} 账户池：暂无额度数据",
-    "pool_slowed": "请求已放慢 {{seconds}} 秒",
-    "pool_throttle_idle": "低于 {{threshold}} 时放慢请求",
-    "pool_pace_title": "账户池节奏：当前可接收请求的账户的剩余额度之和除以剩余时间之和，取最落后于计划的窗口。1× 表示符合计划。低于限速阈值时，每个新请求在发送前都会等待，账户池越落后等待越久。"
+    "runway_clear": "{{provider}} 账户池：按此速度可撑过一周",
+    "runway_short": "{{provider}} 账户池：按此速度{{when}}用完",
+    "runway_reserve": "{{provider}} 账户池：几乎耗尽",
+    "runway_learning": "{{provider}} 账户池：正在根据用量估算额度",
+    "runway_no_delay": "无延迟",
+    "runway_slowed": "请求已放慢 {{seconds}} 秒",
+    "runway_throttle_off": "限速已关闭",
+    "runway_unsized": "{{window}} 尚未估算额度",
+    "runway_title": "续航：把预测需求（最近 1 小时、最近 1 天、最近 1 周）在未来 7 天内，优先从每周窗口最先重置的账户中消耗，并受各账户 5 小时窗口限制。每个账户的额度按其窗口开始以来的用量估算。请求只会放慢到刚好让账户池不被用完；当前可服务的账户剩余额度不足 2 小时的需求时，每个请求都会等待最长时间。"
   },
   "quota_management": {
     "refreshed_just_now": "刚刚",

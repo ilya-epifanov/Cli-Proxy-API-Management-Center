@@ -1624,11 +1624,15 @@
     "model_cooldown": "{{model}} cooling down, back {{when}}",
     "rank_model_prefix": "Claude rank for",
     "rank_model_any": "any model",
-    "pool_pace": "{{provider}} pool: pace {{pace}} on {{window}}",
-    "pool_pace_unknown": "{{provider}} pool: no quota data yet",
-    "pool_slowed": "requests slowed by {{seconds}} s",
-    "pool_throttle_idle": "slows requests when below {{threshold}}",
-    "pool_pace_title": "Pool pace: quota left divided by time left, summed over the accounts that can take requests now, on the window most behind schedule. 1× is on schedule. Below the throttle threshold, every new request waits before it is sent, longer the further behind the pool is."
+    "runway_clear": "{{provider}} pool: lasts the week at this rate",
+    "runway_short": "{{provider}} pool: runs out {{when}} at this rate",
+    "runway_reserve": "{{provider}} pool: almost empty",
+    "runway_learning": "{{provider}} pool: sizing quota from usage",
+    "runway_no_delay": "no delay",
+    "runway_slowed": "requests slowed by {{seconds}} s",
+    "runway_throttle_off": "throttle off",
+    "runway_unsized": "{{window}} not sized yet",
+    "runway_title": "Runway: the forecast demand (last hour, last day, last week) spent from the accounts whose weekly window resets first, capped by each 5-hour window, over the next 7 days. Each account's quota is sized from the usage it spent since its window started. Requests are slowed only as much as keeps the pool from running out; while the accounts that can serve now hold less than 2 hours of demand, every request waits the maximum."
   },
   "quota_management": {
     "refreshed_just_now": "just now",
