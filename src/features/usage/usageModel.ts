@@ -22,7 +22,7 @@ const HOUR_MS = 3_600_000;
 export const USAGE_RANGES = ['24h', '7d', '30d'] as const;
 export type UsageRange = (typeof USAGE_RANGES)[number];
 
-export const USAGE_METRICS = ['tokens', 'requests'] as const;
+export const USAGE_METRICS = ['tokens', 'output', 'requests'] as const;
 export type UsageMetric = (typeof USAGE_METRICS)[number];
 
 const RANGE_SPECS: Record<UsageRange, { bucket: UsageBucket; buckets: number }> = {
@@ -126,8 +126,19 @@ export const sumCounters = (items: readonly UsageCounters[]): UsageCounters =>
 export const totalTokens = (c: UsageCounters): number =>
   c.input + c.cacheRead + c.cacheWrite + c.output + c.reasoning + c.unclassified;
 
-export const metricValue = (c: UsageCounters, metric: UsageMetric): number =>
-  metric === 'tokens' ? totalTokens(c) : c.requests;
+/** Generated tokens, reasoning included: what providers bill as output. */
+export const outputTokens = (c: UsageCounters): number => c.output + c.reasoning;
+
+export const metricValue = (c: UsageCounters, metric: UsageMetric): number => {
+  switch (metric) {
+    case 'tokens':
+      return totalTokens(c);
+    case 'output':
+      return outputTokens(c);
+    case 'requests':
+      return c.requests;
+  }
+};
 
 /* ---------- gap filling ---------- */
 

@@ -26,6 +26,7 @@ import {
   buildUsageTree,
   groupLabel,
   rangeBucket,
+  outputTokens,
   rankGroups,
   STACK_LIMIT,
   sumCounters,
@@ -134,14 +135,26 @@ function useUsageView(snapshot: UsageSnapshot | null, metric: UsageMetric) {
 }
 
 /** Range name and totals under the title. */
-function UsageSummary({ range, totals }: { range: UsageRange; totals: UsageCounters }) {
+function UsageSummary({
+  range,
+  totals,
+  metric,
+}: {
+  range: UsageRange;
+  totals: UsageCounters;
+  metric: UsageMetric;
+}) {
   const { t, i18n } = useTranslation();
   const exact = (value: number) => value.toLocaleString(i18n.language);
-  const tokens = totalTokens(totals);
+  // The output view counts output tokens here too, so the summary matches the chart.
+  const output = metric === 'output';
+  const tokens = output ? outputTokens(totals) : totalTokens(totals);
   const parts = [
     <span key="range">{t(`usage.range_name_${range}`)}</span>,
     <span key="tokens" title={exact(tokens)}>
-      {t('usage.meta_tokens', { value: formatCompactNumber(tokens) })}
+      {t(output ? 'usage.meta_output' : 'usage.meta_tokens', {
+        value: formatCompactNumber(tokens),
+      })}
     </span>,
     <span key="requests">{t('usage.meta_requests', { value: exact(totals.requests) })}</span>,
   ];
@@ -273,7 +286,7 @@ export function UsagePage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>{t('usage.title')}</h1>
-        {snapshot && <UsageSummary range={shownRange} totals={totals} />}
+        {snapshot && <UsageSummary range={shownRange} totals={totals} metric={metric} />}
       </header>
 
       {showControls && (

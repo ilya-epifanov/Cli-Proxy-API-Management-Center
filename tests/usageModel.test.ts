@@ -9,6 +9,7 @@ import {
   buildUsageTree,
   fillSeries,
   groupLabel,
+  metricValue,
   rankGroups,
   totalTokens,
   UsageTimelineError,
@@ -223,6 +224,30 @@ describe('assignSeriesSlots', () => {
     const next = assignSeriesSlots(previous, ['z', 'x']);
     expect(slotsOf(next)).toEqual({ x: 0, z: 1 });
     expectContiguous(next);
+  });
+});
+
+describe('metricValue', () => {
+  const sample = counters({
+    requests: 2,
+    input: 100,
+    cacheRead: 1000,
+    cacheWrite: 50,
+    output: 30,
+    reasoning: 20,
+    unclassified: 1,
+  });
+
+  test('tokens counts every token bucket', () => {
+    expect(metricValue(sample, 'tokens')).toBe(1201);
+  });
+
+  test('output counts output and reasoning, not input or cache', () => {
+    expect(metricValue(sample, 'output')).toBe(50);
+  });
+
+  test('requests counts requests', () => {
+    expect(metricValue(sample, 'requests')).toBe(2);
   });
 });
 
