@@ -426,7 +426,7 @@ describe('poolRunwayLines', () => {
 
   test('reserve: the maximum wait, in the warning tone', () => {
     const [line] = lines({ reason: 'reserve', speed: 0, delay_ms: 120_000 });
-    expect(line.text).toBe('Claude pool: almost empty · requests slowed by 120 s');
+    expect(line.text).toBe('Claude pool: runs out before it refills at this rate · requests slowed by 120 s');
     expect(line.warn).toBe(true);
   });
 
@@ -455,7 +455,7 @@ describe('poolRunwayLines', () => {
       'Claude pool: lasts the week at this rate · throttle off',
     ]);
     expect(text({ ...off, reason: 'reserve', speed: 0 })).toEqual([
-      'Claude pool: almost empty · throttle off',
+      'Claude pool: runs out before it refills at this rate · throttle off',
     ]);
     expect(text({ ...off, reason: 'learning', speed: null, window: null, dry_at: null })).toEqual([
       'Claude pool: sizing quota from usage · throttle off',

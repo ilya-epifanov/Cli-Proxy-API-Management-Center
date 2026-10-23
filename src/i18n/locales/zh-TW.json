@@ -1611,13 +1611,13 @@
     "rank_model_any": "任意模型",
     "runway_clear": "{{provider}} 帳戶池：依此速度可撐過一週",
     "runway_short": "{{provider}} 帳戶池：依此速度{{when}}用完",
-    "runway_reserve": "{{provider}} 帳戶池：幾乎耗盡",
+    "runway_reserve": "{{provider}} 帳戶池：照此速度會在恢復前耗盡",
     "runway_learning": "{{provider}} 帳戶池：正在根據用量估算額度",
     "runway_no_delay": "無延遲",
     "runway_slowed": "請求已放慢 {{seconds}} 秒",
     "runway_throttle_off": "限速已關閉",
     "runway_unsized": "{{window}} 尚未估算額度",
-    "runway_title": "續航：把預測需求（最近 1 小時、最近 1 天、最近 1 週）在未來 7 天內，優先從每週視窗最先重置的帳戶中消耗，並受各帳戶 5 小時視窗限制。每個帳戶的額度依其視窗開始以來的用量估算。請求只會放慢到剛好讓帳戶池不被用完；目前可服務的帳戶剩餘額度不足 2 小時的需求時，每個請求都會等待最長時間。"
+    "runway_title": "續航：把預測需求（最近 1 小時、最近 1 天、最近 1 週）在未來 7 天內，優先從每週視窗最先重置的帳戶中消耗，並受各帳戶 5 小時視窗限制。每個帳戶的額度依其視窗開始以來的用量估算。請求只會放慢到剛好讓帳戶池不被用完；如果依額度讀數顯示的消耗速度，目前可服務帳戶的剩餘額度會在恢復前耗盡（最多往前看 12 小時），請求會放慢到足以撐到恢復。"
   },
   "quota_management": {
     "refreshed_just_now": "剛剛",

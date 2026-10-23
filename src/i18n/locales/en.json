@@ -1584,13 +1584,13 @@
     "rank_model_any": "any model",
     "runway_clear": "{{provider}} pool: lasts the week at this rate",
     "runway_short": "{{provider}} pool: runs out {{when}} at this rate",
-    "runway_reserve": "{{provider}} pool: almost empty",
+    "runway_reserve": "{{provider}} pool: runs out before it refills at this rate",
     "runway_learning": "{{provider}} pool: sizing quota from usage",
     "runway_no_delay": "no delay",
     "runway_slowed": "requests slowed by {{seconds}} s",
     "runway_throttle_off": "throttle off",
     "runway_unsized": "{{window}} not sized yet",
-    "runway_title": "Runway: the forecast demand (last hour, last day, last week) spent from the accounts whose weekly window resets first, capped by each 5-hour window, over the next 7 days. Each account's quota is sized from the usage it spent since its window started. Requests are slowed only as much as keeps the pool from running out; while the accounts that can serve now hold less than 2 hours of demand, every request waits the maximum."
+    "runway_title": "Runway: the forecast demand (last hour, last day, last week) spent from the accounts whose weekly window resets first, capped by each 5-hour window, over the next 7 days. Each account's quota is sized from the usage it spent since its window started. Requests are slowed only as much as keeps the pool from running out; and if, at the rate the quota reads show it draining, what the accounts that can serve now hold would run out before it refills (looking up to 12 hours ahead), requests slow until it lasts."
   },
   "quota_management": {
     "refreshed_just_now": "just now",

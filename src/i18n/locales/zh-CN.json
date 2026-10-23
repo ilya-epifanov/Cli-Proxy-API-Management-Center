@@ -1583,13 +1583,13 @@
     "rank_model_any": "任意模型",
     "runway_clear": "{{provider}} 账户池：按此速度可撑过一周",
     "runway_short": "{{provider}} 账户池：按此速度{{when}}用完",
-    "runway_reserve": "{{provider}} 账户池：几乎耗尽",
+    "runway_reserve": "{{provider}} 账户池：按此速度会在恢复前耗尽",
     "runway_learning": "{{provider}} 账户池：正在根据用量估算额度",
     "runway_no_delay": "无延迟",
     "runway_slowed": "请求已放慢 {{seconds}} 秒",
     "runway_throttle_off": "限速已关闭",
     "runway_unsized": "{{window}} 尚未估算额度",
-    "runway_title": "续航：把预测需求（最近 1 小时、最近 1 天、最近 1 周）在未来 7 天内，优先从每周窗口最先重置的账户中消耗，并受各账户 5 小时窗口限制。每个账户的额度按其窗口开始以来的用量估算。请求只会放慢到刚好让账户池不被用完；当前可服务的账户剩余额度不足 2 小时的需求时，每个请求都会等待最长时间。"
+    "runway_title": "续航：把预测需求（最近 1 小时、最近 1 天、最近 1 周）在未来 7 天内，优先从每周窗口最先重置的账户中消耗，并受各账户 5 小时窗口限制。每个账户的额度按其窗口开始以来的用量估算。请求只会放慢到刚好让账户池不被用完；如果按额度读数显示的消耗速度，当前可服务账户的剩余额度会在恢复前耗尽（最多向前看 12 小时），请求会放慢到足以撑到恢复。"
   },
   "quota_management": {
     "refreshed_just_now": "刚刚",

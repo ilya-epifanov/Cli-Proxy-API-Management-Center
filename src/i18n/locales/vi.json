@@ -1541,13 +1541,13 @@
     "rank_model_any": "mọi mô hình",
     "runway_clear": "Nhóm {{provider}}: đủ dùng cả tuần theo nhịp này",
     "runway_short": "Nhóm {{provider}}: hết quota {{when}} theo nhịp này",
-    "runway_reserve": "Nhóm {{provider}}: gần cạn",
+    "runway_reserve": "Nhóm {{provider}}: với tốc độ này sẽ cạn trước khi được nạp lại",
     "runway_learning": "Nhóm {{provider}}: đang ước tính quota từ mức sử dụng",
     "runway_no_delay": "không có độ trễ",
     "runway_slowed": "yêu cầu bị chậm lại {{seconds}} giây",
     "runway_throttle_off": "đã tắt làm chậm",
     "runway_unsized": "{{window}} chưa được ước tính",
-    "runway_title": "Quãng chạy: nhu cầu dự báo (giờ qua, ngày qua, tuần qua) được chi từ các tài khoản có cửa sổ tuần đặt lại sớm nhất, bị giới hạn bởi từng cửa sổ 5 giờ, trong 7 ngày tới. Quota của mỗi tài khoản được ước tính từ lượng đã dùng kể từ khi cửa sổ của nó bắt đầu. Yêu cầu chỉ bị làm chậm vừa đủ để nhóm không cạn; khi các tài khoản có thể phục vụ lúc này còn ít hơn 2 giờ nhu cầu, mọi yêu cầu đều phải chờ tối đa."
+    "runway_title": "Quãng chạy: nhu cầu dự báo (giờ qua, ngày qua, tuần qua) được chi từ các tài khoản có cửa sổ tuần đặt lại sớm nhất, bị giới hạn bởi từng cửa sổ 5 giờ, trong 7 ngày tới. Quota của mỗi tài khoản được ước tính từ lượng đã dùng kể từ khi cửa sổ của nó bắt đầu. Yêu cầu chỉ bị làm chậm vừa đủ để nhóm không cạn; và nếu, theo tốc độ tiêu hao mà các lần đọc quota cho thấy, phần còn lại của các tài khoản có thể phục vụ lúc này sẽ cạn trước khi được nạp lại (xét tối đa 12 giờ tới), yêu cầu sẽ chậm lại cho đến khi đủ dùng."
   },
   "quota_management": {
     "refreshed_just_now": "vừa xong",
