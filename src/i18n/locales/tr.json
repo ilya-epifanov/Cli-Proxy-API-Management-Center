@@ -1626,13 +1626,13 @@
     "rank_model_any": "herhangi bir model",
     "runway_clear": "{{provider}} havuzu: bu hızla hafta boyunca yeter",
     "runway_short": "{{provider}} havuzu: bu hızla {{when}} tükenir",
-    "runway_reserve": "{{provider}} havuzu: neredeyse boş",
+    "runway_reserve": "{{provider}} havuzu: bu hızla yenilenmeden önce tükenir",
     "runway_learning": "{{provider}} havuzu: kota kullanımdan ölçülüyor",
     "runway_no_delay": "gecikme yok",
     "runway_slowed": "istekler {{seconds}} sn yavaşlatıldı",
     "runway_throttle_off": "kısma kapalı",
     "runway_unsized": "{{window}} henüz ölçülmedi",
-    "runway_title": "Pist: tahmini talep (son saat, son gün, son hafta), önümüzdeki 7 gün boyunca haftalık penceresi ilk sıfırlanan hesaplardan harcanır ve her 5 saatlik pencereyle sınırlanır. Her hesabın kotası, penceresi başladığından beri harcadığı kullanımdan ölçülür. İstekler yalnızca havuzun tükenmesini önleyecek kadar yavaşlatılır; şu anda hizmet verebilen hesaplar 2 saatten az talep tuttuğu sürece her istek en uzun süre bekler."
+    "runway_title": "Pist: tahmini talep (son saat, son gün, son hafta), önümüzdeki 7 gün boyunca haftalık penceresi ilk sıfırlanan hesaplardan harcanır ve her 5 saatlik pencereyle sınırlanır. Her hesabın kotası, penceresi başladığından beri harcadığı kullanımdan ölçülür. İstekler yalnızca havuzun tükenmesini önleyecek kadar yavaşlatılır; ayrıca kota okumalarının gösterdiği tükenme hızıyla, şu anda hizmet verebilen hesapların tuttuğu miktar yenilenmeden önce tükenecekse (en fazla 12 saat ileriye bakılarak), istekler yetene kadar yavaşlar."
   },
   "quota_management": {
     "refreshed_just_now": "az önce",
