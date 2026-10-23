@@ -406,7 +406,7 @@ describe('poolRunwayLines', () => {
     expect(lines({ dry_at: '2026-10-19T12:00:00Z' })).toEqual([
       {
         provider: 'claude',
-        text: 'Claude pool: runs out in 6 days at this rate · requests slowed by 7 s',
+        text: 'Claude pool: would run out in 6 days at full speed · requests slowed by 7 s',
         title: expect.stringContaining('Runway: the forecast demand'),
         warn: true,
       },
@@ -414,8 +414,8 @@ describe('poolRunwayLines', () => {
   });
 
   test('short: the time to dry is as coarse as on the cards', () => {
-    expect(text({ dry_at: '2026-10-13T12:40:00Z' })[0]).toContain('runs out in 40 minutes');
-    expect(text({ dry_at: '2026-10-13T17:30:00Z' })[0]).toContain('runs out in 5 hours');
+    expect(text({ dry_at: '2026-10-13T12:40:00Z' })[0]).toContain('would run out in 40 minutes');
+    expect(text({ dry_at: '2026-10-13T17:30:00Z' })[0]).toContain('would run out in 5 hours');
   });
 
   test('clear: lasts the week, no delay, no warning', () => {
@@ -426,7 +426,7 @@ describe('poolRunwayLines', () => {
 
   test('reserve: the maximum wait, in the warning tone', () => {
     const [line] = lines({ reason: 'reserve', speed: 0, delay_ms: 120_000 });
-    expect(line.text).toBe('Claude pool: runs out before it refills at this rate · requests slowed by 120 s');
+    expect(line.text).toBe('Claude pool: would run out before it refills at full speed · requests slowed by 120 s');
     expect(line.warn).toBe(true);
   });
 
@@ -449,13 +449,13 @@ describe('poolRunwayLines', () => {
   test('throttle off replaces the delay part for every reason', () => {
     const off = { max_delay_ms: 0, delay_ms: 0 };
     expect(text({ ...off, dry_at: '2026-10-19T12:00:00Z' })).toEqual([
-      'Claude pool: runs out in 6 days at this rate · throttle off',
+      'Claude pool: would run out in 6 days at full speed · throttle off',
     ]);
     expect(text({ ...off, reason: 'clear', speed: 1, dry_at: null })).toEqual([
       'Claude pool: lasts the week at this rate · throttle off',
     ]);
     expect(text({ ...off, reason: 'reserve', speed: 0 })).toEqual([
-      'Claude pool: runs out before it refills at this rate · throttle off',
+      'Claude pool: would run out before it refills at full speed · throttle off',
     ]);
     expect(text({ ...off, reason: 'learning', speed: null, window: null, dry_at: null })).toEqual([
       'Claude pool: sizing quota from usage · throttle off',
