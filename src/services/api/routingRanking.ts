@@ -61,9 +61,21 @@ export interface NotCandidate {
 export const RUNWAY_REASONS = ['clear', 'short', 'reserve', 'learning'] as const;
 export type RunwayReason = (typeof RUNWAY_REASONS)[number];
 
+/** The operator's speed for a pool, replacing the computed one until cleared. */
+export interface ThrottleOverride {
+  /** Share of full speed, 0 to 1; 1 never delays. */
+  speed: number;
+  /** Epoch ms. */
+  setAt: number;
+}
+
 interface RunwayBase {
-  /** What each new request for this pool waits now; 0 when the throttle is off. */
+  /** What each new request for this pool waits now, the override applied; 0 when the throttle is off. */
   delayMs: number;
+  /** What a request would wait without the override. */
+  computedDelayMs: number;
+  /** null unless the operator set one; reason and speed stay the computed ones. */
+  override: ThrottleOverride | null;
   /** When the pool runs out at full speed, epoch ms; null when it lasts the week. */
   dryAt: number | null;
   /** Accounts the plan counts. */
@@ -166,10 +178,26 @@ const parseEntry = (value: unknown, path: string): RankEntry => {
   }
 };
 
+const parseSpeed = (value: unknown, path: string): number => {
+  const speed = finite(value, path);
+  if (speed < 0 || speed > 1) reader.fail(path, 'a number between 0 and 1');
+  return speed;
+};
+
+const parseOverride = (value: unknown, path: string): ThrottleOverride => {
+  const raw = reader.record(value, path);
+  return {
+    speed: parseSpeed(raw.speed, `${path}.speed`),
+    setAt: reader.instant(raw.set_at, `${path}.set_at`),
+  };
+};
+
 const parseRunway = (value: unknown, path: string): PoolRunway => {
   const raw = reader.record(value, path);
   const base: RunwayBase = {
     delayMs: reader.count(raw.delay_ms, `${path}.delay_ms`),
+    computedDelayMs: reader.count(raw.computed_delay_ms, `${path}.computed_delay_ms`),
+    override: nullable(raw.override, (v) => parseOverride(v, `${path}.override`)),
     dryAt: nullable(raw.dry_at, (v) => reader.instant(v, `${path}.dry_at`)),
     accounts: reader.count(raw.accounts, `${path}.accounts`),
     demandPerHour: nonNegative(raw.demand_per_hour, `${path}.demand_per_hour`),
@@ -184,8 +212,7 @@ const parseRunway = (value: unknown, path: string): PoolRunway => {
       reader.fail(`${path}.window`, 'null while learning');
     return { ...base, reason, speed: null, window: null };
   }
-  const speed = finite(raw.speed, `${path}.speed`);
-  if (speed < 0 || speed > 1) reader.fail(`${path}.speed`, 'a number between 0 and 1');
+  const speed = parseSpeed(raw.speed, `${path}.speed`);
   const window = reader.string(raw.window, `${path}.window`);
   if (reason === 'short') {
     const { dryAt } = base;
@@ -238,5 +265,15 @@ export const routingRankingApi = {
     if (params.model) query.set('model', params.model);
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
     return parseRoutingRanking(await apiClient.get<unknown>(`/routing/ranking${suffix}`));
+  },
+
+  /** Runs `provider`'s pool at `speed` (0 to 1) until cleared, whatever its runway says. */
+  async setThrottleOverride(provider: string, speed: number): Promise<void> {
+    await apiClient.put(`/routing/throttle/overrides/${encodeURIComponent(provider)}`, { speed });
+  },
+
+  /** Returns `provider`'s pool to the computed throttle. */
+  async clearThrottleOverride(provider: string): Promise<void> {
+    await apiClient.delete(`/routing/throttle/overrides/${encodeURIComponent(provider)}`);
   },
 };

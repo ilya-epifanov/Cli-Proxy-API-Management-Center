@@ -1617,6 +1617,14 @@
     "runway_slowed": "請求已放慢 {{seconds}} 秒",
     "runway_throttle_off": "限速已關閉",
     "runway_unsized": "{{window}} 尚未估算額度",
+    "runway_override": "速度已手動設為 {{percent}} %",
+    "runway_computed_slowed": "僅按限速：放慢 {{seconds}} 秒",
+    "runway_computed_no_delay": "僅按限速：無延遲",
+    "override_toggle": "手動設定速度",
+    "override_toggle_aria": "手動設定 {{provider}} 帳戶池的速度",
+    "override_speed_label": "{{provider}} 帳戶池速度，佔全速的 %",
+    "override_apply": "套用",
+    "override_failed": "無法變更手動速度：{{message}}",
     "runway_title": "續航：把預測需求（最近 1 小時、最近 1 天、最近 1 週）在未來 7 天內，優先從每週視窗最先重置的帳戶中消耗，並受各帳戶 5 小時視窗限制。每個帳戶的額度依其視窗開始以來的用量估算。請求只會放慢到剛好讓帳戶池不被用完；如果依額度讀數顯示的消耗速度，目前可服務帳戶的剩餘額度會在恢復前耗盡（最多往前看 12 小時），請求會放慢到足以撐到恢復。"
   },
   "quota_management": {

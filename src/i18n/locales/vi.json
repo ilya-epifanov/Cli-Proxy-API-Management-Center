@@ -1547,6 +1547,14 @@
     "runway_slowed": "yêu cầu bị chậm lại {{seconds}} giây",
     "runway_throttle_off": "đã tắt làm chậm",
     "runway_unsized": "{{window}} chưa được ước tính",
+    "runway_override": "tốc độ đặt thủ công: {{percent}} %",
+    "runway_computed_slowed": "chỉ theo giới hạn tự động: chậm {{seconds}} giây",
+    "runway_computed_no_delay": "chỉ theo giới hạn tự động: không chậm",
+    "override_toggle": "Đặt tốc độ thủ công",
+    "override_toggle_aria": "Đặt thủ công tốc độ của nhóm {{provider}}",
+    "override_speed_label": "Tốc độ nhóm {{provider}}, % so với tốc độ tối đa",
+    "override_apply": "Áp dụng",
+    "override_failed": "Không thể thay đổi tốc độ thủ công: {{message}}",
     "runway_title": "Quãng chạy: nhu cầu dự báo (giờ qua, ngày qua, tuần qua) được chi từ các tài khoản có cửa sổ tuần đặt lại sớm nhất, bị giới hạn bởi từng cửa sổ 5 giờ, trong 7 ngày tới. Quota của mỗi tài khoản được ước tính từ lượng đã dùng kể từ khi cửa sổ của nó bắt đầu. Yêu cầu chỉ bị làm chậm vừa đủ để nhóm không cạn; và nếu, theo tốc độ tiêu hao mà các lần đọc quota cho thấy, phần còn lại của các tài khoản có thể phục vụ lúc này sẽ cạn trước khi được nạp lại (xét tối đa 12 giờ tới), yêu cầu sẽ chậm lại cho đến khi đủ dùng."
   },
   "quota_management": {

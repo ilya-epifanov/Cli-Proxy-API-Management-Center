@@ -139,6 +139,56 @@
   color: var(--warning-text);
 }
 
+.runwayRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  min-width: 0;
+
+  > .routingLine {
+    flex: 1 1 24rem;
+    min-width: 0;
+  }
+}
+
+.throttleOverride {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.overrideForm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// The field and its button share one compact line, as small as the switch beside them.
+.overrideInput,
+.overrideApply {
+  height: 28px;
+  font-size: 12.5px;
+}
+
+.overrideInput {
+  width: 4.5rem;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+
+  &[aria-invalid='true'] {
+    border-color: var(--error-color);
+  }
+}
+
+.overrideApply {
+  padding: 0 10px;
+}
+
 /* ---------- body 容器 ---------- */
 
 .body {

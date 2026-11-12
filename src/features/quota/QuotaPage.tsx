@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authFilesApi } from '@/services/api';
+import { authFilesApi, routingRankingApi } from '@/services/api';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconSearch, IconX } from '@/components/ui/icons';
@@ -19,14 +19,14 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useNow } from '@/hooks/useNow';
 import { useRevealGroup } from '@/hooks/motion';
-import { useAuthStore, useQuotaStore, useThemeStore } from '@/stores';
+import { useAuthStore, useNotificationStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
-import { PoolRunwayLines } from './components/QuotaRouting';
+import { PoolRunwayLines, type ThrottleOverrideChange } from './components/QuotaRouting';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import {
   CARD_ENTRANCE_BUDGET_MS,
@@ -69,6 +69,7 @@ const displayNameFor = (name: string) => name;
 
 export function QuotaPage() {
   const { t } = useTranslation();
+  const showNotification = useNotificationStore((state) => state.showNotification);
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const resolvedTheme: ResolvedTheme = useThemeStore((state) => state.resolvedTheme);
 
@@ -176,7 +177,7 @@ export function QuotaPage() {
   /* ---------- 路由排名 ----------
    * The pace selector's ranking, shown on Claude and Codex cards and usable as a sort. */
 
-  const ranking = useRoutingRanking(
+  const { ranking, reload: reloadRanking } = useRoutingRanking(
     connectionStatus !== 'connected' || loading || Boolean(error),
     claudeRankModel || null,
     files
@@ -191,6 +192,23 @@ export function QuotaPage() {
     [routingByIndex]
   );
   const claudeModels = useClaudeRankingModels(Boolean(ranking));
+  const handleThrottleOverride = useCallback<ThrottleOverrideChange>(
+    async (provider, speed) => {
+      try {
+        if (speed === null) await routingRankingApi.clearThrottleOverride(provider);
+        else await routingRankingApi.setThrottleOverride(provider, speed);
+      } catch (err: unknown) {
+        showNotification(
+          t('quota_routing.override_failed', {
+            message: err instanceof Error ? err.message : String(err),
+          }),
+          'error'
+        );
+      }
+      await reloadRanking();
+    },
+    [reloadRanking, showNotification, t]
+  );
 
   /* ---------- 归类 / 过滤 / 排序 / 分页 ---------- */
 
@@ -462,7 +480,12 @@ export function QuotaPage() {
         </div>
 
         {ranking && (
-          <PoolRunwayLines pools={ranking.pools} tab={tab} className={styles.poolRunway} />
+          <PoolRunwayLines
+            pools={ranking.pools}
+            tab={tab}
+            className={styles.poolRunway}
+            onOverride={handleThrottleOverride}
+          />
         )}
 
         {error && (

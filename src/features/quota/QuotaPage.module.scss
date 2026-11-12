@@ -204,7 +204,8 @@
 .poolRunway {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  // Each pool's controls wrap under its line on a narrow screen; the gap keeps them with it.
+  gap: 6px;
   min-width: 0;
 }
 

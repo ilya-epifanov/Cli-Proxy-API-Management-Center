@@ -304,6 +304,8 @@ const runwayWire = {
   reason: 'short',
   speed: 0.84,
   delay_ms: 6542,
+  computed_delay_ms: 6542,
+  override: null,
   dry_at: '2026-10-19T21:03:16Z',
   window: 'seven-day',
   accounts: 5,
@@ -319,12 +321,33 @@ describe('runway parsing', () => {
       reason: 'short',
       speed: 0.84,
       delayMs: 6542,
+      computedDelayMs: 6542,
+      override: null,
       dryAt: Date.parse('2026-10-19T21:03:16Z'),
       window: 'seven-day',
       accounts: 5,
       demandPerHour: 31.6,
       maxDelayMs: 120_000,
       unsized: [],
+    });
+  });
+
+  test('reads the override next to the computed runway', () => {
+    const pool = parseRoutingRanking(
+      wire([wireEntry()], {
+        runway: {
+          ...runwayWire,
+          delay_ms: 0,
+          override: { speed: 1, set_at: '2026-10-13T10:00:00Z' },
+        },
+      })
+    ).pools[0];
+    expect(pool.runway).toMatchObject({
+      reason: 'short',
+      speed: 0.84,
+      delayMs: 0,
+      computedDelayMs: 6542,
+      override: { speed: 1, setAt: Date.parse('2026-10-13T10:00:00Z') },
     });
   });
 
@@ -378,6 +401,9 @@ describe('runway parsing', () => {
     ['fractional delay', { delay_ms: 1.5 }],
     ['negative delay', { delay_ms: -1 }],
     ['missing max delay', { max_delay_ms: undefined }],
+    ['missing computed delay', { computed_delay_ms: undefined }],
+    ['override above full speed', { override: { speed: 1.2, set_at: '2026-10-13T10:00:00Z' } }],
+    ['override without a time', { override: { speed: 1 } }],
     ['negative accounts', { accounts: -1 }],
     ['negative demand', { demand_per_hour: -1 }],
     ['unsized not an array', { unsized: 'five-hour' }],
@@ -406,9 +432,12 @@ describe('poolRunwayLines', () => {
     expect(lines({ dry_at: '2026-10-19T12:00:00Z' })).toEqual([
       {
         provider: 'claude',
+        providerLabel: 'Claude',
         text: 'Claude pool: would run out in 6 days at full speed · requests slowed by 7 s',
         title: expect.stringContaining('Runway: the forecast demand'),
         warn: true,
+        override: null,
+        overridable: true,
       },
     ]);
   });
@@ -426,7 +455,9 @@ describe('poolRunwayLines', () => {
 
   test('reserve: the maximum wait, in the warning tone', () => {
     const [line] = lines({ reason: 'reserve', speed: 0, delay_ms: 120_000 });
-    expect(line.text).toBe('Claude pool: would run out before it refills at full speed · requests slowed by 120 s');
+    expect(line.text).toBe(
+      'Claude pool: would run out before it refills at full speed · requests slowed by 120 s'
+    );
     expect(line.warn).toBe(true);
   });
 
@@ -462,6 +493,42 @@ describe('poolRunwayLines', () => {
     ]);
   });
 
+  test('override at full speed: no delay, what the throttle would do, in the warning tone', () => {
+    const override = { speed: 1, set_at: '2026-10-13T10:00:00Z' };
+    const [line] = lines({ dry_at: '2026-10-19T12:00:00Z', delay_ms: 0, override });
+    expect(line.text).toBe(
+      'Claude pool: would run out in 6 days at full speed · speed overridden to 100 % · no delay · throttle alone: slowed by 7 s'
+    );
+    expect(line).toMatchObject({ warn: true, override: 1, overridable: true });
+  });
+
+  test('override that slows a clear pool', () => {
+    const [line] = lines({
+      reason: 'clear',
+      speed: 1,
+      dry_at: null,
+      delay_ms: 10_000,
+      computed_delay_ms: 0,
+      override: { speed: 0.5, set_at: '2026-10-13T10:00:00Z' },
+    });
+    expect(line.text).toBe(
+      'Claude pool: lasts the week at this rate · speed overridden to 50 % · requests slowed by 10 s · throttle alone: no delay'
+    );
+    expect(line.warn).toBe(true);
+  });
+
+  test('override equal to the computed delay names it once', () => {
+    const override = { speed: 0.84, set_at: '2026-10-13T10:00:00Z' };
+    expect(text({ dry_at: '2026-10-19T12:00:00Z', override })[0]).toBe(
+      'Claude pool: would run out in 6 days at full speed · speed overridden to 84 % · requests slowed by 7 s'
+    );
+  });
+
+  test('throttle off: no override switch', () => {
+    const [line] = lines({ max_delay_ms: 0, delay_ms: 0, computed_delay_ms: 0 });
+    expect(line.overridable).toBe(false);
+  });
+
   test('unsized windows are named at the end', () => {
     expect(
       text({ reason: 'clear', speed: 1, delay_ms: 0, dry_at: null, unsized: ['five-hour'] })
@@ -492,6 +559,19 @@ describe('poolRunwayLines', () => {
     );
     expect(html).toContain('Claude pool: lasts the week at this rate · no delay');
     expect(html.match(/<p /g)).toHaveLength(1);
+    expect(html).not.toContain('type="checkbox"');
+    const controlled = renderToStaticMarkup(
+      createElement(PoolRunwayLines, {
+        pools: pools({
+          runway: { ...clear, override: { speed: 0.4, set_at: '2026-10-13T10:00:00Z' } },
+        }),
+        tab: 'all',
+        onOverride: async () => undefined,
+      })
+    );
+    expect(controlled).toContain('Override speed');
+    expect(controlled).toMatch(/type="checkbox"[^>]*checked/);
+    expect(controlled).toContain('value="40"');
     expect(
       renderToStaticMarkup(createElement(PoolRunwayLines, { pools: pools({}), tab: 'all' }))
     ).toBe('');

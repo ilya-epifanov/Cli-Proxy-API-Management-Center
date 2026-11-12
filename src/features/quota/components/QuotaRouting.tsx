@@ -3,7 +3,10 @@
  * The rank chip sits in the card header; the routing notes sit under it.
  */
 
+import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/Button';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useNow } from '@/hooks/useNow';
 import type { PoolRanking } from '@/services/api';
 import type { AuthFileItem } from '@/types';
@@ -50,15 +53,23 @@ export function RoutingNotes({ routing, file }: { routing: CardRouting; file: Au
   );
 }
 
-/** Pool runway per provider the tab shows, and whether the throttle slows requests now. */
+/** Sets a pool's speed (0 to 1), or returns it to the computed throttle with null. */
+export type ThrottleOverrideChange = (provider: string, speed: number | null) => Promise<void>;
+
+/**
+ * Pool runway per provider the tab shows, and whether the throttle slows requests now. With
+ * `onOverride`, each pool whose throttle is on gets a switch that fixes its speed.
+ */
 export function PoolRunwayLines({
   pools,
   tab,
   className,
+  onOverride,
 }: {
   pools: readonly PoolRanking[];
   tab: QuotaTabId;
   className?: string;
+  onOverride?: ThrottleOverrideChange;
 }) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -67,14 +78,123 @@ export function PoolRunwayLines({
   return (
     <div className={className}>
       {lines.map((line) => (
-        <p
-          key={line.provider}
-          className={`${styles.routingLine} ${line.warn ? styles.routingLineWarn : ''}`}
-          title={line.title}
-        >
-          {line.text}
-        </p>
+        <div key={line.provider} className={styles.runwayRow}>
+          <p
+            className={`${styles.routingLine} ${line.warn ? styles.routingLineWarn : ''}`}
+            title={line.title}
+          >
+            {line.text}
+          </p>
+          {onOverride && line.overridable && (
+            <ThrottleOverrideControl
+              provider={line.provider}
+              providerLabel={line.providerLabel}
+              override={line.override}
+              onChange={onOverride}
+            />
+          )}
+        </div>
       ))}
     </div>
+  );
+}
+
+/** Full speed: the reason to override is usually quota the plan does not count. */
+const DEFAULT_OVERRIDE_PERCENT = 100;
+
+function ThrottleOverrideControl({
+  provider,
+  providerLabel,
+  override,
+  onChange,
+}: {
+  provider: string;
+  providerLabel: string;
+  override: number | null;
+  onChange: ThrottleOverrideChange;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  // The switch stays enabled while a change is pending, so it keeps keyboard focus; the ref
+  // drops a second change until the first one settles.
+  const pending = useRef(false);
+  const change = async (speed: number | null) => {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    try {
+      await onChange(provider, speed);
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
+  };
+  const percent = override === null ? null : Math.round(override * 100);
+  return (
+    <div className={styles.throttleOverride}>
+      {percent !== null && (
+        // Keyed by the server's value, so the field follows it after every change. It sits
+        // before the switch, so the switches of all pools stay in one column.
+        <OverrideSpeedForm
+          key={percent}
+          providerLabel={providerLabel}
+          percent={percent}
+          busy={busy}
+          onApply={(next) => void change(next / 100)}
+        />
+      )}
+      <ToggleSwitch
+        checked={override !== null}
+        onChange={(on) => void change(on ? DEFAULT_OVERRIDE_PERCENT / 100 : null)}
+        label={t('quota_routing.override_toggle')}
+        ariaLabel={t('quota_routing.override_toggle_aria', { provider: providerLabel })}
+      />
+    </div>
+  );
+}
+
+function OverrideSpeedForm({
+  providerLabel,
+  percent,
+  busy,
+  onApply,
+}: {
+  providerLabel: string;
+  percent: number;
+  busy: boolean;
+  onApply: (percent: number) => void;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState(String(percent));
+  const next = Number(draft);
+  const valid = draft.trim() !== '' && Number.isInteger(next) && next >= 0 && next <= 100;
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (valid && next !== percent) onApply(next);
+  };
+  return (
+    <form className={styles.overrideForm} onSubmit={submit}>
+      <input
+        className={`input ${styles.overrideInput}`}
+        type="number"
+        min={0}
+        max={100}
+        step={1}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        aria-label={t('quota_routing.override_speed_label', { provider: providerLabel })}
+        aria-invalid={!valid}
+      />
+      <span aria-hidden="true">%</span>
+      <Button
+        type="submit"
+        size="sm"
+        variant="secondary"
+        className={styles.overrideApply}
+        disabled={busy || !valid || next === percent}
+      >
+        {t('quota_routing.override_apply')}
+      </Button>
+    </form>
   );
 }
