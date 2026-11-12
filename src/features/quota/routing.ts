@@ -168,11 +168,18 @@ export function routingNotes(
 
 export interface PoolRunwayLine {
   provider: string;
+  providerLabel: string;
   text: string;
   title: string;
-  /** Requests are being slowed: shown in the warning colour. */
+  /** Requests are being slowed, or run faster than the runway allows: shown in the warning colour. */
   warn: boolean;
+  /** The operator's speed, 0 to 1; null when the throttle decides. */
+  override: number | null;
+  /** The throttle is on, so an override changes something. */
+  overridable: boolean;
 }
+
+const seconds = (ms: number) => Math.max(1, Math.round(ms / 1000));
 
 /**
  * One line per pool the pace strategy reports a runway for, for the providers the tab shows:
@@ -189,16 +196,30 @@ export function poolRunwayLines(
     const { runway } = pool;
     if (runway === null || (tab !== 'all' && tab !== pool.provider)) return [];
     const provider = getTypeLabel(t, pool.provider);
+    const { override } = runway;
     const slowed = runway.delayMs > 0;
+    const overridable = runway.maxDelayMs > 0;
     const parts = [runwayStatus(t, runway, provider, nowMs, locale)];
-    if (runway.maxDelayMs === 0) parts.push(t('quota_routing.runway_throttle_off'));
-    else if (slowed) {
+    if (!overridable) parts.push(t('quota_routing.runway_throttle_off'));
+    else {
+      if (override)
+        parts.push(
+          t('quota_routing.runway_override', { percent: Math.round(override.speed * 100) })
+        );
       parts.push(
-        t('quota_routing.runway_slowed', {
-          seconds: Math.max(1, Math.round(runway.delayMs / 1000)),
-        })
+        slowed
+          ? t('quota_routing.runway_slowed', { seconds: seconds(runway.delayMs) })
+          : t('quota_routing.runway_no_delay')
       );
-    } else parts.push(t('quota_routing.runway_no_delay'));
+      if (override && runway.computedDelayMs !== runway.delayMs)
+        parts.push(
+          runway.computedDelayMs > 0
+            ? t('quota_routing.runway_computed_slowed', {
+                seconds: seconds(runway.computedDelayMs),
+              })
+            : t('quota_routing.runway_computed_no_delay')
+        );
+    }
     if (runway.unsized.length > 0) {
       const window = runway.unsized.map((id) => windowLabel(t, id)).join(', ');
       parts.push(t('quota_routing.runway_unsized', { window }));
@@ -206,9 +227,13 @@ export function poolRunwayLines(
     return [
       {
         provider: pool.provider,
+        providerLabel: provider,
         text: parts.join(' · '),
         title: t('quota_routing.runway_title'),
-        warn: slowed,
+        warn:
+          slowed || (overridable && override !== null && runway.computedDelayMs > runway.delayMs),
+        override: override?.speed ?? null,
+        overridable,
       },
     ];
   });

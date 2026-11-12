@@ -20,7 +20,8 @@ const isNotFound = (error: unknown): boolean =>
   error instanceof Error && (error as ApiError).status === 404;
 
 /**
- * The ranking, or null before the first read and on servers that do not rank.
+ * The ranking, or null before the first read and on servers that do not rank, and a reload
+ * for after a change to the routing state.
  * `claudeModel` ranks Claude for one model (a Fable model adds the Fable window); null ranks
  * for any model. Codex is always ranked for any model: its windows do not depend on it.
  */
@@ -28,7 +29,7 @@ export function useRoutingRanking(
   disabled: boolean,
   claudeModel: string | null,
   reloadToken: unknown
-): RoutingRanking | null {
+): { ranking: RoutingRanking | null; reload: () => Promise<void> } {
   const [supported, setSupported] = useState(false);
   const [ranking, setRanking] = useState<RoutingRanking | null>(null);
   const requestRef = useRef(0);
@@ -86,7 +87,7 @@ export function useRoutingRanking(
 
   const poll = useCallback(() => void read(), [read]);
   useVisiblePolling(poll, active ? RANKING_POLL_MS : null);
-  return ranking;
+  return { ranking, reload: read };
 }
 
 /** Claude model ids the ranking can be asked for, read once while `enabled`. */

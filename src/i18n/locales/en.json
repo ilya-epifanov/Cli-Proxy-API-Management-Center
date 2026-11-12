@@ -1632,6 +1632,14 @@
     "runway_slowed": "requests slowed by {{seconds}} s",
     "runway_throttle_off": "throttle off",
     "runway_unsized": "{{window}} not sized yet",
+    "runway_override": "speed overridden to {{percent}} %",
+    "runway_computed_slowed": "throttle alone: slowed by {{seconds}} s",
+    "runway_computed_no_delay": "throttle alone: no delay",
+    "override_toggle": "Override speed",
+    "override_toggle_aria": "Override the {{provider}} pool speed",
+    "override_speed_label": "{{provider}} pool speed, % of full speed",
+    "override_apply": "Apply",
+    "override_failed": "Could not change the speed override: {{message}}",
     "runway_title": "Runway: the forecast demand (last hour, last day, last week) spent from the accounts whose weekly window resets first, capped by each 5-hour window, over the next 7 days. Each account's quota is sized from the usage it spent since its window started. Requests are slowed only as much as keeps the pool from running out; and if, at the rate the quota reads show it draining, what the accounts that can serve now hold would run out before it refills (looking up to 12 hours ahead), requests slow until it lasts."
   },
   "quota_management": {
