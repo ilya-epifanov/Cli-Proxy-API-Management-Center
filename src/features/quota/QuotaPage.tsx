@@ -25,6 +25,7 @@ import { useRevealGroup } from '@/hooks/motion';
 import { useAuthStore, useNotificationStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { getErrorMessage } from '@/utils/helpers';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
@@ -213,7 +214,7 @@ export function QuotaPage() {
       } catch (err: unknown) {
         showNotification(
           t('quota_routing.override_failed', {
-            message: err instanceof Error ? err.message : String(err),
+            message: getErrorMessage(err, String(err)),
           }),
           'error'
         );
