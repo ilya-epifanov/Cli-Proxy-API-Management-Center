@@ -4,10 +4,11 @@
  * The server decides when an account is read; this hook never makes it read one.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import { quotaProbesApi, serverReadsQuota, type QuotaProbeEntry } from '@/services/api';
+import { useServerCapability } from '@/hooks/useServerCapability';
+import { quotaProbesApi, readsQuota, type QuotaProbeEntry } from '@/services/api';
 import { captureQuotaCacheGeneration, commitIfQuotaCacheCurrent } from '@/stores';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
@@ -19,19 +20,8 @@ const SERVER_QUOTA_POLL_MS = 60_000;
 
 export function useServerQuotaAutoLoad(entries: QuotaFileEntry[], disabled: boolean) {
   const { t } = useTranslation();
-  const [serverReads, setServerReads] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    // DECISION: an unreadable capability leaves the page on click-to-load, as before.
-    serverReadsQuota().then(
-      (value) => live && setServerReads(value),
-      () => undefined
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
+  // DECISION: an unreadable capability leaves the page on click-to-load, as before.
+  const serverReads = useServerCapability(readsQuota, false);
 
   const sync = useCallback(async () => {
     const generation = captureQuotaCacheGeneration();
