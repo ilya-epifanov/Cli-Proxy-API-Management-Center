@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Collapsible } from '@/components/ui/Collapsible';
 import { axisMax } from '@/features/dashboard/utils';
 import { formatCompactNumber } from '@/utils/format';
+import { HOUR_MS } from '@/utils/time/durations';
 import {
   axisTickIndices,
   rangeBucket,
@@ -14,7 +15,6 @@ import styles from './UsageChart.module.scss';
 
 /** Y-axis lines including 0. */
 const TICK_COUNT = 5;
-const HOUR_MS = 3_600_000;
 /** Past this many columns the gap between them shrinks to 1px, so the bars keep some width. */
 const DENSE_COLUMNS = 72;
 /** The whole entrance wave finishes within this, however many columns there are. */
