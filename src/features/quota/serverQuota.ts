@@ -3,6 +3,7 @@
 import type { TFunction } from 'i18next';
 import type { QuotaProbeEntry } from '@/services/api';
 import type { AuthFileItem } from '@/types';
+import { getErrorMessage } from '@/utils/helpers';
 import { getStatusFromError } from '@/utils/quota';
 import type { QuotaAdapter, QuotaCardState } from './providers';
 
@@ -38,7 +39,7 @@ export function serverQuotaState(
     data = adapter.fromServerProbe(file, entry, t);
   } catch (err: unknown) {
     if (current?.status === 'success') return null;
-    const message = err instanceof Error ? err.message : t('common.unknown_error');
+    const message = getErrorMessage(err, t('common.unknown_error'));
     if (current?.status === 'error' && current.error === message) return null;
     return adapter.buildErrorState(message, getStatusFromError(err));
   }

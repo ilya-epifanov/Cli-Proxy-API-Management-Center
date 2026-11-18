@@ -78,7 +78,7 @@ describe('Claude and Codex quota read path', () => {
       'src/features/quota/providers/claude/resetGrantReads.ts',
     ]);
     expect(sources.get('src/features/quota/providers/claude/ClaudeResetGrants.tsx')).toMatch(
-      /serverReads\s+\? Promise\.reject\([^)]*\)\)\s+: readResetGrantsForCard\(authIndex\)/
+      /serverReads \? null : readResetGrantsForCard\(authIndex\)/
     );
   });
 });

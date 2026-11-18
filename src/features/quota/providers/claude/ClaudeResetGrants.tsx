@@ -39,44 +39,36 @@ export function useClaudeResetGrants(
   const now = useNow();
   const authIndex = normalizeAuthIndex(file.auth_index ?? file.authIndex);
   const key = JSON.stringify([file.name, authIndex]);
-  const [status, setStatus] = useState<AnthropicResetGrantStatus | null>(null);
+  const [readStatus, setReadStatus] = useState<AnthropicResetGrantStatus | null>(null);
+  const [readMessage, setReadMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
   const [reload, setReload] = useState(0);
   const [dialog, setDialog] = useState<{ key: string; selected: string | null } | null>(null);
   const lock = useRef(false);
   const generation = useRef(0);
+  const active = enabled && !disabled && sessionActive && Boolean(authIndex);
+  const fromServer = serverStatus !== undefined;
   useEffect(() => {
     const version = ++generation.current;
-    setStatus(null);
-    if (!enabled || disabled || !sessionActive || !authIndex) return;
-    if (serverStatus !== undefined) {
-      setStatus(serverStatus);
-      setMessage(serverStatus ? '' : 'read_error');
-      return;
-    }
+    setReadStatus(null);
+    // A server that reads quota reads the grant status with it; without that status, there is
+    // nothing to show, and reading directly would bypass the server's rate limit.
+    if (!active || fromServer || !authIndex) return;
     let cancelled = false;
     const current = () =>
       !cancelled && version === generation.current && session === apiClient.getConnectionRevision();
-    // A server that reads quota reads the grant status with it; without that status, there is
-    // nothing to show, and reading directly would bypass the server's rate limit.
     const cancelRead = scheduleResetGrantRead(() => {
       void serverReadsQuota()
-        .then((serverReads) =>
-          serverReads
-            ? Promise.reject(new Error('no server read'))
-            : readResetGrantsForCard(authIndex)
-        )
+        .then((serverReads) => (serverReads ? null : readResetGrantsForCard(authIndex)))
         .then(
           (result) => {
-            if (current()) {
-              setStatus(result);
-              setMessage('');
-            }
+            if (!current()) return;
+            setReadStatus(result);
+            setReadMessage(result ? '' : 'read_error');
           },
           (error: unknown) => {
             if (current()) {
-              setMessage(
+              setReadMessage(
                 error instanceof AnthropicResetGrantError && error.code === 'rate_limited'
                   ? 'rate_limited'
                   : 'read_error'
@@ -90,17 +82,9 @@ export function useClaudeResetGrants(
       cancelRead();
       generation.current += 1;
     };
-  }, [
-    authIndex,
-    key,
-    enabled,
-    disabled,
-    sessionActive,
-    session,
-    refreshToken,
-    reload,
-    serverStatus,
-  ]);
+  }, [authIndex, key, active, fromServer, serverStatus, session, refreshToken, reload]);
+  const status = active ? (fromServer ? serverStatus : readStatus) : null;
+  const message = active && fromServer ? (serverStatus ? '' : 'read_error') : readMessage;
 
   const operation = resetGrantOperations.inspect(key);
   const pending = operation && !operation.code ? operation : undefined;
