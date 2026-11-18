@@ -4,6 +4,7 @@ import { useNow } from '@/hooks/useNow';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useNotificationStore } from '@/stores';
 import { apiClient } from '@/services/api/client';
+import { serverReadsQuota } from '@/services/api/capabilities';
 import {
   AnthropicResetGrantError,
   type AnthropicResetGrantStatus,
@@ -25,7 +26,9 @@ export function useClaudeResetGrants(
   enabled: boolean,
   disabled: boolean,
   refreshToken: unknown,
-  onRefresh: () => void
+  onRefresh: () => void,
+  /** Status from the server's quota read; undefined when the card reads it directly. */
+  serverStatus: AnthropicResetGrantStatus | null | undefined
 ) {
   const { t } = useTranslation();
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
@@ -36,45 +39,52 @@ export function useClaudeResetGrants(
   const now = useNow();
   const authIndex = normalizeAuthIndex(file.auth_index ?? file.authIndex);
   const key = JSON.stringify([file.name, authIndex]);
-  const [status, setStatus] = useState<AnthropicResetGrantStatus | null>(null);
+  const [readStatus, setReadStatus] = useState<AnthropicResetGrantStatus | null>(null);
+  const [readMessage, setReadMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
   const [reload, setReload] = useState(0);
   const [dialog, setDialog] = useState<{ key: string; selected: string | null } | null>(null);
   const lock = useRef(false);
   const generation = useRef(0);
+  const active = enabled && !disabled && sessionActive && Boolean(authIndex);
+  const fromServer = serverStatus !== undefined;
   useEffect(() => {
     const version = ++generation.current;
-    setStatus(null);
-    if (!enabled || disabled || !sessionActive || !authIndex) return;
+    setReadStatus(null);
+    // A server that reads quota reads the grant status with it; without that status, there is
+    // nothing to show, and reading directly would bypass the server's rate limit.
+    if (!active || fromServer || !authIndex) return;
     let cancelled = false;
     const current = () =>
       !cancelled && version === generation.current && session === apiClient.getConnectionRevision();
     const cancelRead = scheduleResetGrantRead(() => {
-      void readResetGrantsForCard(authIndex).then(
-        (result) => {
-          if (current()) {
-            setStatus(result);
-            setMessage('');
+      void serverReadsQuota()
+        .then((serverReads) => (serverReads ? null : readResetGrantsForCard(authIndex)))
+        .then(
+          (result) => {
+            if (!current()) return;
+            setReadStatus(result);
+            setReadMessage(result ? '' : 'read_error');
+          },
+          (error: unknown) => {
+            if (current()) {
+              setReadMessage(
+                error instanceof AnthropicResetGrantError && error.code === 'rate_limited'
+                  ? 'rate_limited'
+                  : 'read_error'
+              );
+            }
           }
-        },
-        (error: unknown) => {
-          if (current()) {
-            setMessage(
-              error instanceof AnthropicResetGrantError && error.code === 'rate_limited'
-                ? 'rate_limited'
-                : 'read_error'
-            );
-          }
-        }
-      );
+        );
     }, current);
     return () => {
       cancelled = true;
       cancelRead();
       generation.current += 1;
     };
-  }, [authIndex, key, enabled, disabled, sessionActive, session, refreshToken, reload]);
+  }, [authIndex, key, active, fromServer, serverStatus, session, refreshToken, reload]);
+  const status = active ? (fromServer ? serverStatus : readStatus) : null;
+  const message = active && fromServer ? (serverStatus ? '' : 'read_error') : readMessage;
 
   const operation = resetGrantOperations.inspect(key);
   const pending = operation && !operation.code ? operation : undefined;

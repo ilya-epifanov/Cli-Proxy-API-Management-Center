@@ -7,8 +7,10 @@
 
 import type { ComponentType } from 'react';
 import type { TFunction } from 'i18next';
+import { quotaProbesApi, serverReadsQuota, type QuotaProbeEntry } from '@/services/api';
 import { useQuotaStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
+import { normalizeAuthIndex } from '@/utils/authIndex';
 import type { QuotaBodyProps } from '../types';
 import type { QuotaProviderType, QuotaStore } from './types';
 import { ANTIGRAVITY_CONFIG } from './antigravity/data';
@@ -40,6 +42,7 @@ export interface QuotaAdapter {
   i18nPrefix: string;
   filterFn: (file: AuthFileItem) => boolean;
   fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<unknown>;
+  fromServerProbe?: (file: AuthFileItem, entry: QuotaProbeEntry, t: TFunction) => unknown;
   enrichQuota?: (file: AuthFileItem, data: unknown, t: TFunction) => Promise<unknown>;
   resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<unknown>;
   canResetQuota?: (quota: QuotaCardState) => boolean;
@@ -51,18 +54,50 @@ export interface QuotaAdapter {
   Body: ComponentType<QuotaBodyProps<QuotaCardState>>;
 }
 
+/** A provider's data layer and body, before the registry adds its read path. */
+type ProviderAdapter = Omit<QuotaAdapter, 'resetQuota'> & {
+  consumeReset?: (file: AuthFileItem, t: TFunction) => Promise<void>;
+};
+
+/**
+ * Chooses how a provider's quota is read. When the provider can use the server's reads and the
+ * server reads quota itself, every read goes through `POST /quota/probes/refresh`, so the
+ * server's schedule and rate limit cover all of them; otherwise the provider reads directly.
+ * A spent reset is followed by a read on the same path.
+ */
+function withReadPath(provider: ProviderAdapter): QuotaAdapter {
+  const { consumeReset, fromServerProbe, ...adapter } = provider;
+  const fetchQuota: QuotaAdapter['fetchQuota'] = async (file, t) => {
+    if (!fromServerProbe || !(await serverReadsQuota())) return provider.fetchQuota(file, t);
+    const authIndex = normalizeAuthIndex(file.auth_index ?? file.authIndex);
+    if (!authIndex) throw new Error(t(`${provider.i18nPrefix}.missing_auth_index`));
+    return fromServerProbe(file, await quotaProbesApi.refresh(authIndex), t);
+  };
+  return {
+    ...adapter,
+    fromServerProbe,
+    fetchQuota,
+    resetQuota:
+      consumeReset &&
+      (async (file, t) => {
+        await consumeReset(file, t);
+        return fetchQuota(file, t);
+      }),
+  };
+}
+
+const provider = (config: unknown, Body: unknown): QuotaAdapter =>
+  withReadPath({ ...(config as ProviderAdapter), Body: Body as ProviderAdapter['Body'] });
+
 export const QUOTA_ADAPTERS: Record<QuotaProviderType, QuotaAdapter> = {
-  antigravity: {
-    ...ANTIGRAVITY_CONFIG,
-    Body: AntigravityQuotaBody,
-  } as unknown as QuotaAdapter,
-  claude: { ...CLAUDE_CONFIG, Body: ClaudeQuotaBody } as unknown as QuotaAdapter,
-  codex: { ...CODEX_CONFIG, Body: CodexQuotaBody } as unknown as QuotaAdapter,
-  devin: { ...DEVIN_CONFIG, Body: DevinQuotaBody } as unknown as QuotaAdapter,
-  kimi: { ...KIMI_CONFIG, Body: KimiQuotaBody } as unknown as QuotaAdapter,
-  meta: { ...META_CONFIG, Body: MetaQuotaBody } as unknown as QuotaAdapter,
-  plugin: { ...PLUGIN_CONFIG, Body: PluginQuotaBody } as unknown as QuotaAdapter,
-  xai: { ...XAI_CONFIG, Body: XaiQuotaBody } as unknown as QuotaAdapter,
+  antigravity: provider(ANTIGRAVITY_CONFIG, AntigravityQuotaBody),
+  claude: provider(CLAUDE_CONFIG, ClaudeQuotaBody),
+  codex: provider(CODEX_CONFIG, CodexQuotaBody),
+  devin: provider(DEVIN_CONFIG, DevinQuotaBody),
+  kimi: provider(KIMI_CONFIG, KimiQuotaBody),
+  meta: provider(META_CONFIG, MetaQuotaBody),
+  plugin: provider(PLUGIN_CONFIG, PluginQuotaBody),
+  xai: provider(XAI_CONFIG, XaiQuotaBody),
 };
 
 export type QuotaMapUpdater = (

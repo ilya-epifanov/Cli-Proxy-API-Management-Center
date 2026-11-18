@@ -38,6 +38,22 @@ export class ShapeReader {
     return typeof value === 'string' ? value : this.fail(path, 'a string');
   }
 
+  /** A finite number. */
+  number(value: unknown, path: string): number {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : this.fail(path, 'a number');
+  }
+
+  strings(value: unknown, path: string): string[] {
+    return this.array(value, path).map((item, index) => this.string(item, `${path}[${index}]`));
+  }
+
+  /** `read(value)`, or null when the field is null or missing. */
+  nullable<T>(value: unknown, read: (value: unknown) => T): T | null {
+    return value === null || value === undefined ? null : read(value);
+  }
+
   boolean(value: unknown, path: string): boolean {
     return typeof value === 'boolean' ? value : this.fail(path, 'a boolean');
   }

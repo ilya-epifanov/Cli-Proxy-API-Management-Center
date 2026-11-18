@@ -136,6 +136,115 @@
   }
 }
 
+/* ---------- routing：pace selector rank and reason ---------- */
+
+/* Rank chip at the end of the header row. Highlighted while a new session may land here. */
+.routingRank {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: $radius-full;
+  border: 1px solid var(--border-color);
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* The compact layout's details toggle sits right after the chip. */
+.routingRank + .glanceToggle {
+  margin-left: 0;
+}
+
+/* Solid ink, as the page's primary action: the theme's emphasis is ink, not hue. */
+.routingRankNext {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.routingRankTotal {
+  font-weight: 500;
+  color: var(--text-quaternary);
+}
+
+.routingRankNext .routingRankTotal {
+  color: color-mix(in srgb, var(--bg-primary) 65%, transparent);
+}
+
+.routingLines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-top: -4px;
+}
+
+.routingLine {
+  margin: 0;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.routingLineWarn {
+  color: var(--warning-text);
+}
+
+.runwayRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  min-width: 0;
+
+  > .routingLine {
+    flex: 1 1 24rem;
+    min-width: 0;
+  }
+}
+
+.throttleOverride {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.overrideForm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// The field and its button share one compact line, as small as the switch beside them.
+.overrideInput,
+.overrideApply {
+  height: 28px;
+  font-size: 12.5px;
+}
+
+.overrideInput {
+  width: 4.5rem;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+
+  &[aria-invalid='true'] {
+    border-color: var(--error-color);
+  }
+}
+
+.overrideApply {
+  padding: 0 10px;
+}
+
 /* ---------- body 容器 ---------- */
 
 .body {
@@ -284,6 +393,16 @@
   justify-content: flex-end;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+/* When the server read the quota; pushes the actions to the right edge. */
+.refreshedAgo {
+  margin-right: auto;
+  align-self: center;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* 安静描边药丸（与凭证卡图标动作同族：hover 才显色块） */

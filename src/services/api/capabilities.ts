@@ -79,3 +79,12 @@ export function getCachedServerCapabilities(): Promise<Capabilities> {
   }
   return cachedCapabilities.value;
 }
+
+/** True when the server reads Claude and Codex quota itself (fork, `observability.quota`). */
+export const readsQuota = (capabilities: Capabilities): boolean =>
+  capabilities.tag === 'fork' && capabilities.quotaCache;
+
+/** `readsQuota` for the current connection. */
+export async function serverReadsQuota(): Promise<boolean> {
+  return readsQuota(await getCachedServerCapabilities());
+}
