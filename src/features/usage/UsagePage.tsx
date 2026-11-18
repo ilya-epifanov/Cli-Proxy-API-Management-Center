@@ -7,6 +7,7 @@ import { Fragment, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconAlertTriangle, IconInfo } from '@/components/ui/icons';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import {
@@ -16,7 +17,6 @@ import {
 } from '@/services/api/usageHistory';
 import { useAuthStore } from '@/stores';
 import { formatCompactNumber } from '@/utils/format';
-import { SegmentedControl } from './SegmentedControl';
 import { UsageChart } from './UsageChart';
 import { UsageTable, type UsageRowLabel } from './UsageTable';
 import {

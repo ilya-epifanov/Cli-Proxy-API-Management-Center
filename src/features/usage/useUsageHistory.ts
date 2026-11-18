@@ -77,7 +77,13 @@ type LoadResult =
 
 const browserTimeZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-async function fetchUsage(query: UsageQuery, nowMs: number, timeZone: string): Promise<LoadResult> {
+async function fetchUsage(
+  query: UsageQuery,
+  nowMs: number,
+  timeZone: string,
+  /** Names from an earlier load; the credential list is then not read again. */
+  knownNames: Map<string, string> | null
+): Promise<LoadResult> {
   const capabilities = await getCachedServerCapabilities();
   if (capabilities.tag === 'upstream') return { tag: 'upstream' };
   if (!capabilities.usageStore.enabled) return { tag: 'disabled' };
@@ -88,10 +94,12 @@ async function fetchUsage(query: UsageQuery, nowMs: number, timeZone: string): P
       getUsageSeries({ ...window, groupBy: query.groupBy, timeZone }),
       getUsageTotals({ from: window.from, to: window.to }),
       // Names only decorate account keys; their failure must not hide the usage itself.
-      authFilesApi.list().then(
-        (response): NamesResult => ({ ok: true, names: accountNames(response.files) }),
-        (error: unknown): NamesResult => ({ ok: false, message: getErrorMessage(error, '?') })
-      ),
+      knownNames
+        ? Promise.resolve<NamesResult>({ ok: true, names: knownNames })
+        : authFilesApi.list().then(
+            (response): NamesResult => ({ ok: true, names: accountNames(response.files) }),
+            (error: unknown): NamesResult => ({ ok: false, message: getErrorMessage(error, '?') })
+          ),
     ]);
     const starts = bucketStarts(series.bucket, series.from, series.to, timeZone);
     return {
@@ -144,38 +152,57 @@ export function useUsageHistory(query: UsageQuery): UsageHistory {
     error: null,
   });
   const requestRef = useRef(0);
+  /** Names read by the last load, kept for the polls that follow it on the same connection. */
+  const namesRef = useRef<{ revision: number; names: Map<string, string> } | null>(null);
   const { range, groupBy } = query;
 
-  const reload = useCallback(async () => {
-    const requestId = ++requestRef.current;
-    if (!connected) {
-      setState((prev) => ({ ...prev, loading: false }));
-      return;
-    }
-    const revision = apiClient.getConnectionRevision();
-    const isCurrent = () =>
-      requestId === requestRef.current && revision === apiClient.getConnectionRevision();
+  const load = useCallback(
+    async (reuseNames: boolean) => {
+      const requestId = ++requestRef.current;
+      if (!connected) {
+        setState((prev) => ({ ...prev, loading: false }));
+        return;
+      }
+      const revision = apiClient.getConnectionRevision();
+      const isCurrent = () =>
+        requestId === requestRef.current && revision === apiClient.getConnectionRevision();
+      const known = namesRef.current;
+      const knownNames = reuseNames && known?.revision === revision ? known.names : null;
 
-    setState((prev) => (prev.loading ? prev : { ...prev, loading: true }));
-    try {
-      const result = await fetchUsage({ range, groupBy }, Date.now(), browserTimeZone());
-      if (!isCurrent()) return;
-      setState((prev) => applyResult(prev, result));
-    } catch (error) {
-      if (!isCurrent()) return;
-      const message = getErrorMessage(error, t('notification.refresh_failed'));
-      setState((prev) => ({ ...prev, loading: false, error: message }));
-    }
-  }, [connected, range, groupBy, t]);
+      setState((prev) => (prev.loading ? prev : { ...prev, loading: true }));
+      try {
+        const result = await fetchUsage(
+          { range, groupBy },
+          Date.now(),
+          browserTimeZone(),
+          knownNames
+        );
+        if (!isCurrent()) return;
+        namesRef.current =
+          result.tag === 'enabled' && result.names.ok
+            ? { revision, names: result.names.names }
+            : null;
+        setState((prev) => applyResult(prev, result));
+      } catch (error) {
+        if (!isCurrent()) return;
+        const message = getErrorMessage(error, t('notification.refresh_failed'));
+        setState((prev) => ({ ...prev, loading: false, error: message }));
+      }
+    },
+    [connected, range, groupBy, t]
+  );
+  // A manual reload and a change of query read the names again; the polls reuse them.
+  const reload = useCallback(() => load(false), [load]);
+  const poll = useCallback(() => load(true), [load]);
 
   useEffect(() => {
-    void reload();
+    void load(false);
     return () => {
       requestRef.current += 1;
     };
-  }, [reload]);
+  }, [load]);
 
-  useVisiblePolling(reload, connected && state.data.tag !== 'upstream' ? USAGE_POLL_MS : null);
+  useVisiblePolling(poll, connected && state.data.tag !== 'upstream' ? USAGE_POLL_MS : null);
 
   return { ...state, reload };
 }

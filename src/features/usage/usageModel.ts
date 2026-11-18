@@ -13,9 +13,9 @@ import type {
 } from '@/services/api/usageHistory';
 import type { AuthFileItem } from '@/types';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { normalizeStringValue } from '@/utils/quota/parsers';
+import { HOUR_MS } from '@/utils/time/durations';
 import { addZonedDays, zonedParts } from './zonedTime';
-
-const HOUR_MS = 3_600_000;
 
 /* ---------- ranges ---------- */
 
@@ -363,15 +363,15 @@ export function buildUsageTree(rows: readonly UsageTotalsRow[]): UsageTreeNode[]
 
 /* ---------- display names ---------- */
 
-const nonEmpty = (value: unknown): string | null =>
-  typeof value === 'string' && value.trim() ? value.trim() : null;
-
 /** auth_index → the most recognisable name of its credential: email, else label, else file name. */
 export function accountNames(files: readonly AuthFileItem[]): Map<string, string> {
   const names = new Map<string, string>();
   for (const file of files) {
     const authIndex = normalizeAuthIndex(file.authIndex);
-    const name = nonEmpty(file.email) ?? nonEmpty(file.label) ?? nonEmpty(file.name);
+    const name =
+      normalizeStringValue(file.email) ??
+      normalizeStringValue(file.label) ??
+      normalizeStringValue(file.name);
     if (authIndex && name) names.set(authIndex, name);
   }
   return names;
