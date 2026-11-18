@@ -8,7 +8,6 @@ afterEach(() => spies.splice(0).forEach((spy) => spy.mockRestore()));
 
 /** The fork's current response; each test changes only what it is about. */
 const forkBody = (overrides: Record<string, unknown> = {}) => ({
-  config_writable: true,
   strategies: ['round-robin', 'weighted-round-robin', 'fill-first'],
   usage_store: { enabled: true, dropped_records: 0 },
   ...overrides,
@@ -19,19 +18,22 @@ describe('parseCapabilities', () => {
     expect(
       parseCapabilities(
         forkBody({
-          config_writable: false,
           quota_cache: true,
           usage_store: { enabled: true, dropped_records: 12 },
-          strategies: ['fill-first', 'soonest-reset'],
+          strategies: ['fill-first', 'pace'],
         })
       )
     ).toEqual({
       tag: 'fork',
-      configWritable: false,
       quotaCache: true,
       usageStore: { enabled: true, droppedRecords: 12 },
-      strategies: ['fill-first', 'soonest-reset'],
+      strategies: ['fill-first', 'pace'],
     });
+  });
+
+  test('keeps strategy names as the server sends them', () => {
+    const body = forkBody({ strategies: ['round-robin', 'future-strategy'] });
+    expect(parseCapabilities(body).strategies).toEqual(['round-robin', 'future-strategy']);
   });
 
   test('a missing feature field means the feature is not available', () => {
@@ -49,18 +51,8 @@ describe('parseCapabilities', () => {
     expect(parsed.usageStore).toEqual({ enabled: false });
   });
 
-  test('drops strategy names the panel does not know and reports each once', () => {
-    const warn = spyOn(console, 'warn').mockImplementation(() => {});
-    spies.push(warn);
-    const body = forkBody({ strategies: ['round-robin', 'future-strategy-a'] });
-    expect(parseCapabilities(body).strategies).toEqual(['round-robin']);
-    parseCapabilities(body);
-    expect(warn).toHaveBeenCalledTimes(1);
-  });
-
   test.each([
-    ['a non-object body', ['config_writable'], 'body'],
-    ['config_writable missing', forkBody({ config_writable: undefined }), 'config_writable'],
+    ['a non-object body', ['strategies'], 'body'],
     ['quota_cache not a boolean', forkBody({ quota_cache: 'yes' }), 'quota_cache'],
     ['usage_store.enabled missing', forkBody({ usage_store: {} }), 'usage_store.enabled'],
     [

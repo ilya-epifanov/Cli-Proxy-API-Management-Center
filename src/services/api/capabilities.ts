@@ -6,37 +6,23 @@
  * older fork builds, and a missing field means the feature is not available.
  */
 
-import type { ApiError } from '@/types';
+import { isNotFound } from './apiError';
 import { apiClient } from './client';
 import { ShapeReader } from './responseShape';
-
-export const STRATEGY_NAMES = [
-  'round-robin',
-  'weighted-round-robin',
-  'fill-first',
-  'soonest-reset',
-] as const;
-
-export type StrategyName = (typeof STRATEGY_NAMES)[number];
 
 export type UsageStoreCapability = { enabled: false } | { enabled: true; droppedRecords: number };
 
 export type ForkCapabilities = {
   tag: 'fork';
-  configWritable: boolean;
   quotaCache: boolean;
   usageStore: UsageStoreCapability;
-  /** Strategies the server can run; names this panel does not know are dropped. */
-  strategies: StrategyName[];
+  /** Names of the routing strategies the server can run. */
+  strategies: string[];
 };
 
 export type Capabilities = { tag: 'upstream' } | ForkCapabilities;
 
 const reader = new ShapeReader('GET /server/capabilities');
-const reportedUnknownStrategies = new Set<string>();
-
-const isStrategyName = (value: string): value is StrategyName =>
-  (STRATEGY_NAMES as readonly string[]).includes(value);
 
 const parseUsageStore = (value: unknown): UsageStoreCapability => {
   if (value === undefined) return { enabled: false };
@@ -48,32 +34,22 @@ const parseUsageStore = (value: unknown): UsageStoreCapability => {
   };
 };
 
-const parseStrategies = (value: unknown): StrategyName[] =>
-  reader.array(value, 'strategies').flatMap((entry, index) => {
-    const name = reader.string(entry, `strategies[${index}]`);
-    if (isStrategyName(name)) return [name];
-    if (!reportedUnknownStrategies.has(name)) {
-      reportedUnknownStrategies.add(name);
-      console.warn(`Ignoring routing strategy unknown to this panel: ${name}`);
-    }
-    return [];
-  });
+const parseStrategies = (value: unknown): string[] =>
+  reader
+    .array(value, 'strategies')
+    .map((entry, index) => reader.string(entry, `strategies[${index}]`));
 
 /** Parses a 200 response body. */
 export function parseCapabilities(payload: unknown): ForkCapabilities {
   const body = reader.record(payload, 'body');
   return {
     tag: 'fork',
-    configWritable: reader.boolean(body.config_writable, 'config_writable'),
     quotaCache:
       body.quota_cache === undefined ? false : reader.boolean(body.quota_cache, 'quota_cache'),
     usageStore: parseUsageStore(body.usage_store),
     strategies: parseStrategies(body.strategies),
   };
 }
-
-const isNotFound = (error: unknown): boolean =>
-  error instanceof Error && (error as ApiError).status === 404;
 
 export async function getServerCapabilities(): Promise<Capabilities> {
   let payload: unknown;

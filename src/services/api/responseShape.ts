@@ -1,4 +1,5 @@
 import { isRecord } from '@/utils/helpers';
+import { parseTimestampMs } from '@/utils/timestamp';
 
 /**
  * A Management API response that does not match the contract the panel was built against.
@@ -51,7 +52,7 @@ export class ShapeReader {
   /** An RFC 3339 timestamp, returned as epoch milliseconds. */
   instant(value: unknown, path: string): number {
     const text = this.string(value, path);
-    const ms = RFC3339.test(text) ? Date.parse(text) : Number.NaN;
+    const ms = RFC3339.test(text) ? parseTimestampMs(text) : Number.NaN;
     return Number.isFinite(ms) ? ms : this.fail(path, 'an RFC 3339 timestamp');
   }
 

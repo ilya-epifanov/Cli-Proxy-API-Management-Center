@@ -1,3 +1,4 @@
+import type { ApiError } from '@/types';
 import { isRecord } from '@/utils/helpers';
 
 export interface ParsedApiErrorResponse {
@@ -38,3 +39,7 @@ export const parseApiErrorResponse = (
 
   return { message, apiCode };
 };
+
+/** True for an error from a request the server answered with 404. */
+export const isNotFound = (error: unknown): boolean =>
+  error instanceof Error && (error as ApiError).status === 404;
