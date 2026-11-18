@@ -1,0 +1,405 @@
+@use '../../styles/mixins' as *;
+
+/* Stacked usage columns; geometry follows dashboard/components/ThroughputChart. */
+
+.chart {
+  --chart-height: 240px;
+  --bar-max-width: 24px;
+  --y-axis-width: 44px;
+
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  @include mobile {
+    --chart-height: 200px;
+    --y-axis-width: 36px;
+  }
+}
+
+/* ---------- series colours (fork-tokens.scss) ---------- */
+
+.slot1 {
+  --series: var(--series-1);
+}
+.slot2 {
+  --series: var(--series-2);
+}
+.slot3 {
+  --series: var(--series-3);
+}
+.slot4 {
+  --series: var(--series-4);
+}
+.slot5 {
+  --series: var(--series-5);
+}
+.slot6 {
+  --series: var(--series-6);
+}
+.slotOther {
+  --series: var(--series-other);
+}
+
+/* ---------- legend ---------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px $spacing-lg;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.legendLabel {
+  @include text-ellipsis;
+  max-width: 28ch;
+}
+
+.legendValue {
+  font-weight: 650;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+  background: var(--series);
+}
+
+/* ---------- plot ---------- */
+
+.plot {
+  display: flex;
+  gap: $spacing-sm;
+  /* Room for the peak label when the tallest column reaches the top. */
+  padding-top: 22px;
+}
+
+.yAxis {
+  position: relative;
+  width: var(--y-axis-width);
+  height: var(--chart-height);
+  flex: none;
+}
+
+.yTick {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.canvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: var(--chart-height);
+}
+
+.gridlines {
+  position: absolute;
+  inset: 0;
+}
+
+.gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-color);
+
+  &:last-child {
+    background: var(--border-primary);
+  }
+}
+
+/* ---------- columns ---------- */
+
+.columns {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--column-gap, 2px);
+  border-radius: $radius-sm;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 4px;
+  }
+}
+
+.column {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  border-radius: $radius-sm $radius-sm 0 0;
+  /* The whole column height is the hover target, not just the painted bar. */
+  cursor: default;
+}
+
+.columnActive {
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.stack {
+  width: 100%;
+  max-width: var(--bar-max-width);
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  /* First layer at the baseline. */
+  flex-direction: column-reverse;
+  animation: barGrow 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-delay: var(--bar-delay, 0ms);
+  transform-origin: bottom center;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.segment {
+  display: block;
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--series);
+}
+
+/* 2px surface gap between stacked layers: a transparent border inside the layer's own height,
+   so the gap never adds to the column total. */
+.segmentStacked {
+  border-top: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* 4px rounded data end, square at the baseline. */
+.segmentTop {
+  border-radius: $radius-sm $radius-sm 0 0;
+}
+
+/* With the 2px gap above the fill, a 6px outer radius leaves a 4px radius on the fill. */
+.segmentTop.segmentStacked {
+  border-radius: 6px 6px 0 0;
+}
+
+.peakLabel {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: peakFade 240ms ease-out 620ms backwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- tooltip ---------- */
+
+.tooltip {
+  position: absolute;
+  top: 4px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+  padding: $spacing-sm $spacing-md;
+  min-width: 180px;
+  max-width: min(320px, 90%);
+  border-radius: $radius-md;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop-filter);
+  -webkit-backdrop-filter: var(--glass-backdrop-filter);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transition:
+    left 200ms var(--ease-out-strong, ease-out),
+    transform 200ms var(--ease-out-strong, ease-out),
+    opacity 150ms ease-out;
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: opacity 150ms ease-out;
+  }
+}
+
+.tooltipTime {
+  grid-column: 1 / -1;
+  font-weight: 650;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rows share the tooltip grid: line key | value | label. */
+.tooltipRow,
+.tooltipTotal {
+  display: contents;
+
+  b {
+    justify-self: end;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tooltipKey {
+  width: 10px;
+  height: 3px;
+  border-radius: $radius-full;
+  background: var(--series);
+}
+
+.tooltipLabel {
+  @include text-ellipsis;
+}
+
+.tooltipTotal {
+  &::before {
+    content: '';
+  }
+
+  b,
+  span {
+    padding-top: 4px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  b {
+    justify-self: stretch;
+    text-align: right;
+  }
+}
+
+/* ---------- x axis ---------- */
+
+.xAxis {
+  position: relative;
+  height: 16px;
+  margin-left: calc(var(--y-axis-width) + #{$spacing-sm});
+}
+
+.xTick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- data table ---------- */
+
+.tableToggle {
+  font-size: 13px;
+}
+
+.tableScroll {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    padding: 5px $spacing-sm;
+    text-align: right;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  tbody th[scope='row'] {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0.02);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes peakFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
