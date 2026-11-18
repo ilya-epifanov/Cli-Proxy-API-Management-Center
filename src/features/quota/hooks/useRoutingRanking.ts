@@ -6,18 +6,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
-import {
-  authFilesApi,
-  getCachedServerCapabilities,
-  routingRankingApi,
-  type RoutingRanking,
-} from '@/services/api';
-import type { ApiError } from '@/types';
+import { useServerCapability } from '@/hooks/useServerCapability';
+import { authFilesApi, routingRankingApi, type RoutingRanking } from '@/services/api';
+import { isNotFound } from '@/services/api/apiError';
+import type { Capabilities } from '@/services/api/capabilities';
 
 const RANKING_POLL_MS = 30_000;
 
-const isNotFound = (error: unknown): boolean =>
-  error instanceof Error && (error as ApiError).status === 404;
+const ranksByPace = (capabilities: Capabilities): boolean =>
+  capabilities.tag === 'fork' && capabilities.strategies.includes('pace');
 
 /**
  * The ranking, or null before the first read and on servers that do not rank, and a reload
@@ -30,25 +27,14 @@ export function useRoutingRanking(
   claudeModel: string | null,
   reloadToken: unknown
 ): { ranking: RoutingRanking | null; reload: () => Promise<void> } {
-  const [supported, setSupported] = useState(false);
+  // DECISION: unreadable capabilities leave the cards without routing, as on upstream.
+  const paceAdvertised = useServerCapability(ranksByPace, false);
+  // A fork build from before the pace selector advertises pace but answers 404.
+  const [rankingMissing, setRankingMissing] = useState(false);
   const [ranking, setRanking] = useState<RoutingRanking | null>(null);
   const requestRef = useRef(0);
 
-  useEffect(() => {
-    let live = true;
-    // DECISION: unreadable capabilities leave the cards without routing, as on upstream.
-    getCachedServerCapabilities().then(
-      (capabilities) =>
-        live &&
-        setSupported(capabilities.tag === 'fork' && capabilities.strategies.includes('pace')),
-      () => undefined
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
-
-  const active = supported && !disabled;
+  const active = paceAdvertised && !rankingMissing && !disabled;
 
   const read = useCallback(async () => {
     const request = ++requestRef.current;
@@ -57,17 +43,13 @@ export function useRoutingRanking(
         ? await Promise.all([
             routingRankingApi.get({ provider: 'claude', model: claudeModel }),
             routingRankingApi.get({ provider: 'codex' }),
-          ]).then(([claude, codex]) => ({
-            strategy: claude.strategy,
-            pools: [...claude.pools, ...codex.pools],
-          }))
+          ]).then(([claude, codex]) => ({ pools: [...claude.pools, ...codex.pools] }))
         : await routingRankingApi.get();
       if (request === requestRef.current) setRanking(next);
     } catch (err: unknown) {
       if (request !== requestRef.current) return;
       if (isNotFound(err)) {
-        // A fork build from before the pace selector.
-        setSupported(false);
+        setRankingMissing(true);
         setRanking(null);
         return;
       }
