@@ -35,6 +35,10 @@ export function SectionNetwork({
       value: 'fill-first',
       label: t('config_management.visual.sections.network.strategy_fill_first'),
     },
+    {
+      value: 'pace',
+      label: t('config_management.visual.sections.network.strategy_pace'),
+    },
   ];
 
   const disableImageGenerationOptions: Array<{ value: DisableImageGeneration; label: string }> = [

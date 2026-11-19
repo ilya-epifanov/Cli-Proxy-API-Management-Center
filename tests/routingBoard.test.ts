@@ -88,6 +88,19 @@ const catalog: RoutingModelCatalog = {
   credentials: { 'main.json': ['gpt-5'], 'cool.json': ['gpt-5'], runtime: ['gemini-3-pro'] },
 };
 
+describe('pace routing', () => {
+  test('pace shows no fixed shares', () => {
+    const current = board();
+    const draft = draftFromBoard(current);
+    draft.settings = { ...draft.settings, strategy: 'pace' };
+    const preview = resolveRoute(current, draft, catalog, null, 0);
+    expect(preview.tiers[0].state).toBe('active');
+    expect(preview.tiers.flatMap((tier) => tier.members.map((member) => member.share))).toEqual(
+      preview.tiers.flatMap((tier) => tier.members.map(() => null))
+    );
+  });
+});
+
 describe('routing board reading', () => {
   test('reads settings with CPA defaults for absent values', () => {
     expect(readRoutingSettings(RAW)).toEqual({
@@ -96,6 +109,7 @@ describe('routing board reading', () => {
       requestRetry: 3,
       maxRetryCredentials: 0,
     });
+    expect(readRoutingSettings({ routing: { strategy: 'pace' } }).strategy).toBe('pace');
     expect(readRoutingSettings({ routing: { strategy: 'bogus' } }).strategy).toBe('round-robin');
   });
 
