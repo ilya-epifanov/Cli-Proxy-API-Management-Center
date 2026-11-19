@@ -18,13 +18,15 @@ export interface PolicyPanelProps {
 }
 
 function StrategyMark({ strategy }: { strategy: RoutingStrategy }) {
-  // Three dots: even (round-robin), graded (weighted), first one filled (fill-first).
+  // Three dots: even (round-robin), graded (weighted), first one filled (fill-first), rising (pace).
   const opacities =
     strategy === 'round-robin'
       ? [1, 1, 1]
       : strategy === 'weighted-round-robin'
         ? [1, 0.6, 0.3]
-        : [1, 0.25, 0.25];
+        : strategy === 'pace'
+          ? [0.3, 0.6, 1]
+          : [1, 0.25, 0.25];
   return (
     <svg width="18" height="10" viewBox="0 0 18 10" aria-hidden="true" focusable="false">
       {opacities.map((opacity, index) => (
@@ -90,12 +92,12 @@ export function PolicyPanel({ settings, disabled = false, onChange }: PolicyPane
           <h3 id={`${id}-strategy`} className={styles.policyLabel}>
             {t('routing.strategy_label')}
           </h3>
-          {/* Every strategy explained at once, so they can be compared before choosing. */}
+          {/* Every strategy explained at once, so they can be compared before choosing. Pace is only named. */}
           <InfoTip
             label={t('routing.strategy_label')}
             content={
               <span className={styles.strategyTips}>
-                {ROUTING_STRATEGIES.map((strategy) => (
+                {ROUTING_STRATEGIES.filter((strategy) => strategy !== 'pace').map((strategy) => (
                   <span key={strategy} className={styles.strategyTip}>
                     <strong>{t(`routing.strategy_${strategyKey(strategy)}`)}</strong>{' '}
                     {t(`routing.strategy_${strategyKey(strategy)}_desc`)}

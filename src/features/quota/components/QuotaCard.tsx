@@ -25,6 +25,10 @@ import { hasClaudeUsageData } from '../providers/claude/data';
 import { CodexCreditOverageDialog } from '../providers/codex/CodexCreditOverageDialog';
 import { CodexCreditOverageRow } from '../providers/codex/CodexCreditOverageRow';
 import { useCodexCreditOverage } from '../providers/codex/useCodexCreditOverage';
+import { refreshedAtOf } from '../serverQuota';
+import type { CardRouting } from '../routing';
+import { RefreshedAgo } from './RefreshedAgo';
+import { RoutingNotes, RoutingRank } from './QuotaRouting';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
@@ -37,6 +41,8 @@ export type QuotaCardProps = {
   resolvedTheme: ResolvedTheme;
   canRefresh: boolean;
   resetting: boolean;
+  /** The pace selector's rank for this account; absent when the server does not rank. */
+  routing?: CardRouting;
   /** Initial cascade delay; null disables entrance motion for later mounts. */
   entranceDelayMs?: number | null;
   /**
@@ -58,6 +64,7 @@ export function QuotaCard(props: QuotaCardProps) {
     resolvedTheme,
     canRefresh,
     resetting,
+    routing,
     entranceDelayMs,
     glance,
     onToggleGlance,
@@ -80,13 +87,15 @@ export function QuotaCard(props: QuotaCardProps) {
       : ({ '--card-delay': `${mountEntranceDelayMs}ms` } as CSSProperties);
 
   const status = quota?.status ?? 'idle';
+  const refreshedAt = refreshedAtOf(quota);
   const loading = status === 'loading';
   const claudeReset = useClaudeResetGrants(
     file,
     entry.type === 'claude' && status !== 'idle',
     !canRefresh || loading || resetting,
     quota,
-    onRefresh
+    onRefresh,
+    entry.type === 'claude' ? (quota as ClaudeQuotaState | undefined)?.resetGrants : undefined
   );
   const providerType =
     entry.type === 'plugin'
@@ -166,6 +175,7 @@ export function QuotaCard(props: QuotaCardProps) {
         <span className={styles.fileName} title={displayName}>
           {displayName}
         </span>
+        {routing && <RoutingRank routing={routing} />}
         {glance !== undefined && (
           <button
             type="button"
@@ -179,6 +189,8 @@ export function QuotaCard(props: QuotaCardProps) {
           </button>
         )}
       </header>
+
+      {routing && !glance && <RoutingNotes routing={routing} file={file} />}
 
       <div className={styles.body}>
         {status === 'idle' ? (
@@ -232,6 +244,7 @@ export function QuotaCard(props: QuotaCardProps) {
 
       {status !== 'idle' && !glance && (
         <footer className={styles.actionRow}>
+          {refreshedAt !== undefined && <RefreshedAgo at={refreshedAt} />}
           {entry.type === 'claude' && (
             <button
               type="button"

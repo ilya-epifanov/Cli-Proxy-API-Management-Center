@@ -82,16 +82,17 @@ export function filterEntriesBySearch(entries: QuotaFileEntry[], search: string)
 }
 
 /**
- * Order the grid by whichever credential recovers first.
+ * Order the grid by a mode-specific key, smallest first: the next recovery
+ * instant for `soonest`, the routing position for `routing`.
  *
- * The instant is injected rather than read here: quota lives in the store and
- * arrives asynchronously, and keeping this function store-free is what makes
- * the ordering rules directly testable.
+ * The key is injected rather than read here: quota and ranking live outside
+ * this module and arrive asynchronously, and keeping this function store-free
+ * is what makes the ordering rules directly testable.
  *
- * Credentials with no instant — not loaded yet, failed, or reporting no
- * upcoming reset — sink to the bottom rather than sorting as "now". They keep
- * their incoming provider-grouped order, so the unloaded tail still reads like
- * the default view instead of an arbitrary shuffle. Because loading is
+ * Credentials with no key — not loaded yet, failed, reporting no upcoming
+ * reset, or not ranked — sink to the bottom rather than sorting as "now". They
+ * keep their incoming provider-grouped order, so the tail still reads like the
+ * default view instead of an arbitrary shuffle. Because loading is
  * click-to-fetch, that tail is most of the list until the user asks for data.
  *
  * The original index is the final tiebreak, making stability an asserted
@@ -100,18 +101,18 @@ export function filterEntriesBySearch(entries: QuotaFileEntry[], search: string)
 export function sortQuotaEntries(
   entries: QuotaFileEntry[],
   mode: QuotaSortMode,
-  resolveNextRecoveryMs: (entry: QuotaFileEntry) => number | null
+  resolveSortKey: (entry: QuotaFileEntry) => number | null
 ): QuotaFileEntry[] {
-  if (mode !== 'soonest') return [...entries];
+  if (mode === 'default') return [...entries];
 
   // Decorate once — resolving pokes at provider-shaped state per entry.
   return entries
-    .map((entry, index) => ({ entry, index, atMs: resolveNextRecoveryMs(entry) }))
+    .map((entry, index) => ({ entry, index, key: resolveSortKey(entry) }))
     .sort((a, b) => {
-      if (a.atMs === null && b.atMs === null) return a.index - b.index;
-      if (a.atMs === null) return 1;
-      if (b.atMs === null) return -1;
-      return a.atMs - b.atMs || a.index - b.index;
+      if (a.key === null && b.key === null) return a.index - b.index;
+      if (a.key === null) return 1;
+      if (b.key === null) return -1;
+      return a.key - b.key || a.index - b.index;
     })
     .map((decorated) => decorated.entry);
 }

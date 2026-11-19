@@ -28,6 +28,7 @@ import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
+import { PoolRunwayLines } from './components/QuotaRouting';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import {
   CARD_ENTRANCE_BUDGET_MS,
@@ -60,6 +61,9 @@ import type { QuotaProviderType } from './providers/types';
 import { useDevinQuotaAutoLoad } from './providers/devin/useDevinQuotaAutoLoad';
 import { useQuotaActions } from './hooks/useQuotaActions';
 import { useQuotaBatchLoader } from './hooks/useQuotaBatchLoader';
+import { useServerQuotaAutoLoad } from './hooks/useServerQuotaAutoLoad';
+import { useQuotaRouting } from './hooks/useRoutingRanking';
+import { routingSortKey } from './routing';
 import { readQuotaUiState, writeQuotaUiState } from './uiState';
 import styles from './QuotaPage.module.scss';
 
@@ -182,11 +186,20 @@ export function QuotaPage() {
 
   // 只在「最快恢复优先」下订阅分钟时钟。默认序下不门控的话，pageItems 每分钟
   // 换一次身份，会反复空转下面那个「刷新全部」的 loading 下降沿 effect。
-  const tick = useNow(sortMode !== 'default');
-  const sortNow = sortMode === 'default' ? 0 : tick;
+  const tick = useNow(sortMode === 'soonest');
+  const sortNow = sortMode === 'soonest' ? tick : 0;
 
   const entries = useMemo(() => classifyQuotaFiles(files), [files]);
   const tabCounts = useMemo(() => buildTabCounts(entries), [entries]);
+
+  /* ---------- 路由排名 ----------
+   * The pace selector's ranking, shown on Claude and Codex cards and usable as a sort. */
+
+  const { ranking, routingFor, rankingShown, rankModel, onThrottleOverride } = useQuotaRouting({
+    disabled: connectionStatus !== 'connected' || loading || Boolean(error),
+    files,
+    showRankModel: (tab === 'all' || tab === 'claude') && (tabCounts.claude ?? 0) > 0,
+  });
   // Account-level settings span every page and tab, so count over all entries.
   const codexCreditOverageCounts = useMemo(
     () =>
@@ -204,14 +217,22 @@ export function QuotaPage() {
     setPage(1);
   }, []);
 
-  const resolveNextRecovery = useCallback(
-    (entry: QuotaFileEntry) => nextRecoveryMs(entry.type, getQuota(entry), sortNow),
-    [getQuota, sortNow]
+  // Without a ranking the routing sort falls back to the default order.
+  const effectiveSortMode: QuotaSortMode =
+    sortMode === 'routing' && !rankingShown ? 'default' : sortMode;
+  // Only the routing sort reads the ranking; gating it keeps ranking polls from re-sorting other modes.
+  const sortRoutingFor = effectiveSortMode === 'routing' ? routingFor : null;
+  const resolveSortKey = useCallback(
+    (entry: QuotaFileEntry) =>
+      sortRoutingFor
+        ? routingSortKey(entry, sortRoutingFor(entry))
+        : nextRecoveryMs(entry.type, getQuota(entry), sortNow),
+    [getQuota, sortNow, sortRoutingFor]
   );
   // 排序在分页之前：否则「最快恢复」只在当前页内成立。
   const sortedEntries = useMemo(
-    () => sortQuotaEntries(filteredEntries, sortMode, resolveNextRecovery),
-    [filteredEntries, sortMode, resolveNextRecovery]
+    () => sortQuotaEntries(filteredEntries, effectiveSortMode, resolveSortKey),
+    [filteredEntries, effectiveSortMode, resolveSortKey]
   );
 
   const { pageItems, currentPage, totalPages } = useMemo(
@@ -246,8 +267,11 @@ export function QuotaPage() {
 
   const sortOptions = useMemo(
     () =>
-      QUOTA_SORT_MODES.map((mode) => ({ value: mode, label: t(`quota_management.sort_${mode}`) })),
-    [t]
+      QUOTA_SORT_MODES.filter((mode) => mode !== 'routing' || rankingShown).map((mode) => ({
+        value: mode,
+        label: t(`quota_management.sort_${mode}`),
+      })),
+    [rankingShown, t]
   );
 
   const { loadedCount, attentionCount } = useMemo(() => {
@@ -333,6 +357,11 @@ export function QuotaPage() {
     loadQuota
   );
 
+  useServerQuotaAutoLoad(
+    entries,
+    disableControls || loading || Boolean(error) || filesGeneration !== sessionGeneration
+  );
+
   const canUseActions = !disableControls && !loading && filesGeneration === sessionGeneration;
 
   /* ---------- 首屏卡片一次性级联入场 ----------
@@ -366,6 +395,7 @@ export function QuotaPage() {
         resolvedTheme={resolvedTheme}
         canRefresh={canUseActions && !entry.file.disabled}
         resetting={resettingQuotaName === getQuotaCacheKey(entry.file)}
+        routing={routingFor(entry)}
         entranceDelayMs={cardEntranceDelay(index)}
         creditOverageSharedCount={
           entry.type === 'codex'
@@ -433,9 +463,25 @@ export function QuotaPage() {
             )}
           </div>
           <div className={styles.viewControls}>
+            {rankModel.show && (
+              <div className={styles.rankModel}>
+                <span id="quota-claude-rank-model" className={styles.rankModelLabel}>
+                  {t('quota_routing.rank_model_prefix')}
+                </span>
+                <div className={`${styles.sort} ${styles.rankModelSelect}`}>
+                  <Select
+                    value={rankModel.value}
+                    options={rankModel.options}
+                    onChange={rankModel.onChange}
+                    ariaLabelledBy="quota-claude-rank-model"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            )}
             <div className={styles.sort}>
               <Select
-                value={sortMode}
+                value={effectiveSortMode}
                 options={sortOptions}
                 onChange={handleSortModeChange}
                 ariaLabel={t('quota_management.sort_label')}
@@ -445,6 +491,15 @@ export function QuotaPage() {
             <CardLayoutSwitch value={layout} onChange={handleLayoutChange} />
           </div>
         </div>
+
+        {ranking && (
+          <PoolRunwayLines
+            pools={ranking.pools}
+            tab={tab}
+            className={styles.poolRunway}
+            onOverride={onThrottleOverride}
+          />
+        )}
 
         {error && (
           <div className={styles.errorBanner} role="alert">

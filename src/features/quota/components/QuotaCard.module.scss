@@ -136,6 +136,43 @@
   }
 }
 
+/* ---------- routing：pace selector rank and reason ---------- */
+
+/* Rank chip at the end of the header row. Highlighted while a new session may land here. */
+.routingRank {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: $radius-full;
+  border: 1px solid var(--border-color);
+  font-family: $font-mono;
+  font-size: 11.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* The compact layout's details toggle sits right after the chip. */
+.routingRank + .glanceToggle {
+  margin-left: 0;
+}
+
+/* Solid ink, as the page's primary action: the theme's emphasis is ink, not hue. */
+.routingRankNext {
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.routingRankTotal {
+  font-weight: 500;
+  color: var(--text-quaternary);
+}
+
+.routingRankNext .routingRankTotal {
+  color: color-mix(in srgb, var(--bg-primary) 65%, transparent);
+}
+
 /* ---------- body 容器 ---------- */
 
 .body {
@@ -284,6 +321,16 @@
   justify-content: flex-end;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+/* When the server read the quota; pushes the actions to the right edge. */
+.refreshedAgo {
+  margin-right: auto;
+  align-self: center;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* 安静描边药丸（与凭证卡图标动作同族：hover 才显色块） */
