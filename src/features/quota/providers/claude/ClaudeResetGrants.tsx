@@ -82,7 +82,7 @@ export function useClaudeResetGrants(
       cancelRead();
       generation.current += 1;
     };
-  }, [authIndex, key, active, fromServer, serverStatus, session, refreshToken, reload]);
+  }, [authIndex, key, active, fromServer, session, refreshToken, reload]);
   const status = active ? (fromServer ? serverStatus : readStatus) : null;
   const message = active && fromServer ? (serverStatus ? '' : 'read_error') : readMessage;
 
