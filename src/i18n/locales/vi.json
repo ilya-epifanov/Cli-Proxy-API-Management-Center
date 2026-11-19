@@ -233,6 +233,7 @@
     "search_empty_desc": "Hãy thử đổi bộ lọc hoặc xóa ô tìm kiếm.",
     "file_size": "Kích thước",
     "file_modified": "Đã sửa",
+    "signed_in": "Đăng nhập {{when}}",
     "health_status_label": "Sức khỏe",
     "health_status_healthy": "Khỏe mạnh",
     "health_status_warning": "Cảnh báo",

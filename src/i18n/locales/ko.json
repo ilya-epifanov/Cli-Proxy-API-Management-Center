@@ -233,6 +233,7 @@
     "search_empty_desc": "필터를 변경하거나 검색어를 지우고 다시 시도해 보세요.",
     "file_size": "크기",
     "file_modified": "수정 일시",
+    "signed_in": "{{when}} 로그인",
     "card_select": "{{name}} 자격 증명 선택",
     "card_toggle": "{{name}} 자격 증명 활성화",
     "card_requests": "요청",
