@@ -59,8 +59,10 @@ button.quotaMessageAction {
   overflow-wrap: anywhere;
 }
 
+/* Wraps like the Quota page's action row: the read time and two buttons overflow a narrow card. */
 .quotaCardActions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
 }
