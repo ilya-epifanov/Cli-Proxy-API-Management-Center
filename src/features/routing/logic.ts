@@ -479,7 +479,8 @@ export function resolveRoute(
     if (!hasActive && total > 0) {
       state = 'active';
       hasActive = true;
-      if (strategy !== 'fill-first') {
+      // Fill-first and pace have no fixed split.
+      if (strategy === 'round-robin' || strategy === 'weighted-round-robin') {
         for (const member of members) {
           const value = units.get(member.key);
           if (value !== undefined) member.share = Math.round((value / total) * 1000) / 10;
