@@ -18,7 +18,7 @@ import {
   type FilledSeries,
   type SeriesSlot,
 } from '@/features/usage/usageModel';
-import type { AuthIndex, UsageCounters, UsageTotalsRow } from '@/services/api/usageHistory';
+import type { UsageCounters, UsageTotalsRow } from '@/services/api/usageHistory';
 import type { AuthFileItem } from '@/types';
 
 const HOUR = 3_600_000;
@@ -296,7 +296,7 @@ const row = (
   authIndex: string,
   model: string,
   values: Partial<UsageCounters>
-): UsageTotalsRow => ({ provider, authIndex: authIndex as AuthIndex, model, ...counters(values) });
+): UsageTotalsRow => ({ provider, authIndex, model, ...counters(values) });
 
 describe('buildUsageTree', () => {
   test('nests provider ▸ account ▸ model, sums each level and sorts by total tokens', () => {

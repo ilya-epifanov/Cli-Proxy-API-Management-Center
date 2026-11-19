@@ -1,4 +1,12 @@
-import { useId, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Collapsible } from '@/components/ui/Collapsible';
 import { axisMax } from '@/features/dashboard/utils';
@@ -11,6 +19,7 @@ import {
   type UsageRange,
   type UsageStack,
 } from './usageModel';
+import { useExactFormat } from './useExactFormat';
 import styles from './UsageChart.module.scss';
 
 /** Y-axis lines including 0. */
@@ -70,12 +79,7 @@ interface LayerListProps {
   labelOf: (layer: StackLayer) => string;
 }
 
-function useExactFormat() {
-  const { i18n } = useTranslation();
-  return (value: number) => value.toLocaleString(i18n.language);
-}
-
-function ChartLegend({ layers, labelOf }: LayerListProps) {
+const ChartLegend = memo(function ChartLegend({ layers, labelOf }: LayerListProps) {
   const exact = useExactFormat();
   return (
     <figcaption className={styles.legend}>
@@ -90,8 +94,9 @@ function ChartLegend({ layers, labelOf }: LayerListProps) {
       ))}
     </figcaption>
   );
-}
+});
 
+/** `layers` arrive already in display order, top layer first. */
 interface ChartTooltipProps extends LayerListProps {
   /** Selected column. */
   index: number;
@@ -115,7 +120,7 @@ function ChartTooltip({ layers, labelOf, index, count, time, total }: ChartToolt
       aria-hidden="true"
     >
       <span className={styles.tooltipTime}>{time}</span>
-      {[...layers].reverse().map((layer) => (
+      {layers.map((layer) => (
         <span key={layerId(layer)} className={styles.tooltipRow}>
           <span className={cx(styles.tooltipKey, slotClass(layer))} aria-hidden="true" />
           <b>{exact(layer.values[index])}</b>
@@ -137,7 +142,7 @@ interface ChartDataTableProps extends LayerListProps {
 }
 
 /** Every plotted value, for readers who cannot use the columns. */
-function ChartDataTable({
+const ChartDataTable = memo(function ChartDataTable({
   layers,
   labelOf,
   starts,
@@ -176,7 +181,60 @@ function ChartDataTable({
       </div>
     </Collapsible>
   );
+});
+
+interface ChartColumnProps {
+  index: number;
+  count: number;
+  active: boolean;
+  layers: readonly StackLayer[];
+  scaleMax: number;
+  /** Set on the column holding the peak. */
+  peakValue?: number;
+  onSelect: (index: number) => void;
 }
+
+/** One column of stacked segments. Memoised so a hover re-renders only the columns it changes. */
+const ChartColumn = memo(function ChartColumn({
+  index,
+  count,
+  active,
+  layers,
+  scaleMax,
+  peakValue,
+  onSelect,
+}: ChartColumnProps) {
+  const percentOf = (value: number) => Math.min(100, (value / scaleMax) * 100);
+  const visible = layers.filter((layer) => layer.values[index] > 0);
+  const delayMs = count > 1 ? Math.round((index / (count - 1)) * ENTRANCE_BUDGET_MS) : 0;
+  return (
+    <div
+      className={cx(styles.column, active && styles.columnActive)}
+      onMouseEnter={() => onSelect(index)}
+      onClick={() => onSelect(index)}
+    >
+      {peakValue !== undefined && (
+        <span className={styles.peakLabel} style={{ bottom: `${percentOf(peakValue)}%` }}>
+          {formatCompactNumber(peakValue)}
+        </span>
+      )}
+      <div className={styles.stack} style={{ '--bar-delay': `${delayMs}ms` } as CSSProperties}>
+        {visible.map((layer, position) => (
+          <span
+            key={layerId(layer)}
+            className={cx(
+              styles.segment,
+              slotClass(layer),
+              position > 0 && styles.segmentStacked,
+              position === visible.length - 1 && styles.segmentTop
+            )}
+            style={{ height: `${percentOf(layer.values[index])}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+});
 
 interface UsageChartProps {
   stack: UsageStack;
@@ -221,7 +279,12 @@ export function UsageChart({
     return { ratio, value: scaleMax * ratio };
   });
   const xTicks = useMemo(() => axisTickIndices(range, starts, timeZone), [range, starts, timeZone]);
-  const percentOf = (value: number) => Math.min(100, (value / scaleMax) * 100);
+  // Selecting needs no dependencies: state setters are stable.
+  const select = useCallback((index: number) => {
+    setSelected(index);
+    setSelectedByKeyboard(false);
+  }, []);
+  const topFirst = [...layers].reverse();
 
   const summary = peak
     ? `${title}. ${t('usage.chart_summary', {
@@ -290,62 +353,27 @@ export function UsageChart({
             onBlur={() => setSelected(null)}
             onMouseLeave={() => setSelected(null)}
           >
-            {starts.map((start, index) => {
-              const visible = layers.filter((layer) => layer.values[index] > 0);
-              const delayMs =
-                count > 1 ? Math.round((index / (count - 1)) * ENTRANCE_BUDGET_MS) : 0;
-              return (
-                <div
-                  key={start}
-                  className={cx(styles.column, active === index && styles.columnActive)}
-                  onMouseEnter={() => {
-                    setSelected(index);
-                    setSelectedByKeyboard(false);
-                  }}
-                  onClick={() => {
-                    setSelected(index);
-                    setSelectedByKeyboard(false);
-                  }}
-                >
-                  {peak?.index === index && (
-                    <span
-                      className={styles.peakLabel}
-                      style={{ bottom: `${percentOf(peak.value)}%` }}
-                    >
-                      {formatCompactNumber(peak.value)}
-                    </span>
-                  )}
-                  <div
-                    className={styles.stack}
-                    style={{ '--bar-delay': `${delayMs}ms` } as CSSProperties}
-                  >
-                    {visible.map((layer, position) => (
-                      <span
-                        key={layerId(layer)}
-                        className={cx(
-                          styles.segment,
-                          slotClass(layer),
-                          position > 0 && styles.segmentStacked,
-                          position === visible.length - 1 && styles.segmentTop
-                        )}
-                        style={{ height: `${percentOf(layer.values[index])}%` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+            {starts.map((start, index) => (
+              <ChartColumn
+                key={start}
+                index={index}
+                count={count}
+                active={active === index}
+                layers={layers}
+                scaleMax={scaleMax}
+                peakValue={peak?.index === index ? peak.value : undefined}
+                onSelect={select}
+              />
+            ))}
           </div>
-          <p id={hintId} className={styles.visuallyHidden}>
+          <p id={hintId} className="visually-hidden">
             {t('usage.chart_keyboard_hint')}
           </p>
-          <p className={styles.visuallyHidden} aria-live="polite">
+          <p className="visually-hidden" aria-live="polite">
             {active !== null && selectedByKeyboard
               ? [
                   format.bucket(starts[active]),
-                  ...[...layers]
-                    .reverse()
-                    .map((layer) => `${labelOf(layer)} ${exact(layer.values[active])}`),
+                  ...topFirst.map((layer) => `${labelOf(layer)} ${exact(layer.values[active])}`),
                   `${t('usage.chart_total')} ${exact(columnTotals[active])}`,
                 ].join(', ')
               : ''}
@@ -355,7 +383,7 @@ export function UsageChart({
 
           {active !== null && (
             <ChartTooltip
-              layers={layers}
+              layers={topFirst}
               labelOf={labelOf}
               index={active}
               count={count}

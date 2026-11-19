@@ -6,11 +6,9 @@
  */
 
 import type { ApiError } from '@/types';
+import { isNotFound } from './apiError';
 import { apiClient } from './client';
 import { ShapeReader } from './responseShape';
-
-/** CLIProxyAPI `auth_index`: identifies one credential. */
-export type AuthIndex = string & { readonly __brand: 'AuthIndex' };
 
 export const USAGE_BUCKETS = ['1h', '1d'] as const;
 export type UsageBucket = (typeof USAGE_BUCKETS)[number];
@@ -52,7 +50,8 @@ export interface UsageSeriesResult {
 
 export interface UsageTotalsRow extends UsageCounters {
   provider: string;
-  authIndex: AuthIndex;
+  /** CLIProxyAPI auth_index: identifies one credential. */
+  authIndex: string;
   model: string;
 }
 
@@ -149,7 +148,7 @@ export function parseUsageTotals(payload: unknown): UsageTotalsResult {
     const row = totalsReader.record(entry, path);
     return {
       provider: totalsReader.string(row.provider, `${path}.provider`),
-      authIndex: totalsReader.string(row.auth_index, `${path}.auth_index`) as AuthIndex,
+      authIndex: totalsReader.string(row.auth_index, `${path}.auth_index`),
       model: totalsReader.string(row.model, `${path}.model`),
       ...parseCounters(totalsReader, row, path),
     };
@@ -161,12 +160,7 @@ export function parseUsageTotals(payload: unknown): UsageTotalsResult {
 const toRfc3339 = (ms: number): string => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 const rethrowStoreDisabled = (error: unknown): never => {
-  const apiError = error as ApiError;
-  if (
-    error instanceof Error &&
-    apiError.status === 404 &&
-    apiError.apiCode === 'usage_store_disabled'
-  ) {
+  if (isNotFound(error) && (error as ApiError).apiCode === 'usage_store_disabled') {
     throw new UsageStoreDisabledError();
   }
   throw error;

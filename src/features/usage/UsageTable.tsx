@@ -11,25 +11,26 @@ import {
 } from '@/components/ui/Table';
 import type { UsageCounters } from '@/services/api/usageHistory';
 import { formatCompactNumber } from '@/utils/format';
-import { sumCounters, type UsageTreeNode } from './usageModel';
+import { sumCounters, totalTokens, type UsageTreeNode } from './usageModel';
+import { useExactFormat } from './useExactFormat';
 import styles from './UsageTable.module.scss';
 
 interface Column {
   id: string;
-  value: (node: { counters: UsageCounters; tokens: number }) => number;
+  value: (counters: UsageCounters) => number;
 }
 
 /** Disjoint token buckets, then their sum: no column is counted twice. */
 const COLUMNS: readonly Column[] = [
-  { id: 'requests', value: (n) => n.counters.requests },
-  { id: 'failed', value: (n) => n.counters.failed },
-  { id: 'input', value: (n) => n.counters.input },
-  { id: 'cache_read', value: (n) => n.counters.cacheRead },
-  { id: 'cache_write', value: (n) => n.counters.cacheWrite },
-  { id: 'output', value: (n) => n.counters.output },
-  { id: 'reasoning', value: (n) => n.counters.reasoning },
-  { id: 'unclassified', value: (n) => n.counters.unclassified },
-  { id: 'total', value: (n) => n.tokens },
+  { id: 'requests', value: (c) => c.requests },
+  { id: 'failed', value: (c) => c.failed },
+  { id: 'input', value: (c) => c.input },
+  { id: 'cache_read', value: (c) => c.cacheRead },
+  { id: 'cache_write', value: (c) => c.cacheWrite },
+  { id: 'output', value: (c) => c.output },
+  { id: 'reasoning', value: (c) => c.reasoning },
+  { id: 'unclassified', value: (c) => c.unclassified },
+  { id: 'total', value: totalTokens },
 ];
 
 /** Exact below this; compact above, with the exact value in the title. */
@@ -69,20 +70,15 @@ const visibleRows = (
 
 /** Provider ▸ account ▸ model, each level sorted by total tokens. */
 export function UsageTable({ tree, labelOf }: UsageTableProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const exact = useExactFormat();
   const [toggled, setToggled] = useState<ReadonlySet<string>>(() => new Set());
 
-  const grandTotal = useMemo(() => {
-    const counters = sumCounters(tree.map((node) => node.counters));
-    return { counters, tokens: tree.reduce((sum, node) => sum + node.tokens, 0) };
-  }, [tree]);
+  const grandTotal = useMemo(() => sumCounters(tree.map((node) => node.counters)), [tree]);
   // Unclassified tokens are rare; show the column only when some exist, so the visible token
   // columns always add up to the total.
   const columns = useMemo(
-    () =>
-      COLUMNS.filter(
-        (column) => column.id !== 'unclassified' || grandTotal.counters.unclassified > 0
-      ),
+    () => COLUMNS.filter((column) => column.id !== 'unclassified' || grandTotal.unclassified > 0),
     [grandTotal]
   );
   const rows = useMemo(() => visibleRows(tree, toggled), [tree, toggled]);
@@ -96,11 +92,11 @@ export function UsageTable({ tree, labelOf }: UsageTableProps) {
     });
 
   const renderValue = (value: number) => {
-    const exact = value.toLocaleString(i18n.language);
+    const text = exact(value);
     const compact = value >= EXACT_LIMIT;
     return (
-      <span className={value === 0 ? styles.zero : undefined} title={compact ? exact : undefined}>
-        {compact ? formatCompactNumber(value) : exact}
+      <span className={value === 0 ? styles.zero : undefined} title={compact ? text : undefined}>
+        {compact ? formatCompactNumber(value) : text}
       </span>
     );
   };
@@ -153,7 +149,7 @@ export function UsageTable({ tree, labelOf }: UsageTableProps) {
               </TableCell>
               {columns.map((column) => (
                 <TableCell key={column.id} alignRight className={styles.number}>
-                  {renderValue(column.value(node))}
+                  {renderValue(column.value(node.counters))}
                 </TableCell>
               ))}
             </TableRow>

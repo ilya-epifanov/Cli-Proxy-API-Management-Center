@@ -15,11 +15,13 @@ import {
   type UsageCounters,
   type UsageGroupBy,
 } from '@/services/api/usageHistory';
+import { providerLabel } from '@/features/dashboard/utils';
 import { useAuthStore } from '@/stores';
 import { formatCompactNumber } from '@/utils/format';
 import { UsageChart } from './UsageChart';
 import { UsageTable, type UsageRowLabel } from './UsageTable';
 import {
+  accountName,
   accountProviders,
   assignSeriesSlots,
   buildUsageStack,
@@ -40,6 +42,7 @@ import {
   type UsageStack,
   type UsageTreeNode,
 } from './usageModel';
+import { useExactFormat } from './useExactFormat';
 import { useUsageHistory, type UsageSnapshot } from './useUsageHistory';
 import styles from './UsagePage.module.scss';
 
@@ -118,14 +121,12 @@ function useUsageView(snapshot: UsageSnapshot | null, metric: UsageMetric) {
   const rowLabel = useCallback(
     (node: UsageTreeNode): UsageRowLabel => {
       // Under a provider row, an account needs no provider suffix and a model is its own name.
-      const context = { ...labelContext, providers: new Map<string, string>() };
+      const { names, unknownLabel } = labelContext;
       if (node.level === 'provider') {
-        return { primary: groupLabel('provider', node.key, context), secondary: null };
+        return { primary: providerLabel(node.key, unknownLabel), secondary: null };
       }
-      if (node.level === 'model') {
-        return { primary: groupLabel('model', node.key, context), secondary: null };
-      }
-      const primary = groupLabel('auth_index', node.key, context);
+      if (node.level === 'model') return { primary: node.key || unknownLabel, secondary: null };
+      const primary = accountName(node.key, names, unknownLabel);
       return { primary, secondary: node.key && primary !== node.key ? node.key : null };
     },
     [labelContext]
@@ -144,8 +145,8 @@ function UsageSummary({
   totals: UsageCounters;
   metric: UsageMetric;
 }) {
-  const { t, i18n } = useTranslation();
-  const exact = (value: number) => value.toLocaleString(i18n.language);
+  const { t } = useTranslation();
+  const exact = useExactFormat();
   // The output view counts output tokens here too, so the summary matches the chart.
   const output = metric === 'output';
   const tokens = output ? outputTokens(totals) : totalTokens(totals);
@@ -245,14 +246,14 @@ function UsageSections({
 }
 
 export function UsagePage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const exact = useExactFormat();
   const connected = useAuthStore((state) => state.connectionStatus === 'connected');
   const [range, setRange] = useState<UsageRange>('24h');
   const [groupBy, setGroupBy] = useState<UsageGroupBy>('provider');
   const [metric, setMetric] = useState<UsageMetric>('tokens');
 
-  const query = useMemo(() => ({ range, groupBy }), [range, groupBy]);
-  const { data, loading, error, reload } = useUsageHistory(query);
+  const { data, loading, error, reload } = useUsageHistory({ range, groupBy });
   useHeaderRefresh(reload, connected);
 
   const snapshot: UsageSnapshot | null = data.tag === 'enabled' ? data.snapshot : null;
@@ -274,7 +275,6 @@ export function UsagePage() {
 
   /* ---------- render ---------- */
 
-  const exact = (value: number) => value.toLocaleString(i18n.language);
   const shownRange = snapshot?.query.range ?? range;
   // The controls changed and the matching data is still loading: dim what is on screen.
   const stale =

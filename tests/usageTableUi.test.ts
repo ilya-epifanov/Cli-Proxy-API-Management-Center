@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
 import { UsageTable } from '@/features/usage/UsageTable';
 import { buildUsageTree, ZERO_COUNTERS } from '@/features/usage/usageModel';
-import type { AuthIndex, UsageCounters, UsageTotalsRow } from '@/services/api/usageHistory';
+import type { UsageCounters, UsageTotalsRow } from '@/services/api/usageHistory';
 
 beforeAll(async () => {
   await i18n.changeLanguage('en');
@@ -17,7 +17,7 @@ const row = (
   values: Partial<UsageCounters>
 ): UsageTotalsRow => ({
   provider,
-  authIndex: authIndex as AuthIndex,
+  authIndex,
   model,
   ...ZERO_COUNTERS,
   ...values,

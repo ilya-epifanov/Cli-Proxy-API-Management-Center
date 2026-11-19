@@ -379,7 +379,7 @@ export function accountNames(files: readonly AuthFileItem[]): Map<string, string
 
 /** auth_index → provider id, from the totals rows of the same window. */
 export function accountProviders(rows: readonly UsageTotalsRow[]): Map<string, string> {
-  return new Map(rows.map((row) => [row.authIndex as string, row.provider]));
+  return new Map(rows.map((row) => [row.authIndex, row.provider]));
 }
 
 export interface GroupLabelContext {
@@ -391,6 +391,15 @@ export interface GroupLabelContext {
   unknownLabel: string;
 }
 
+/** An account's credential name, or its raw auth_index when no credential matches. */
+export function accountName(
+  key: string,
+  names: ReadonlyMap<string, string>,
+  unknownLabel: string
+): string {
+  return !key ? unknownLabel : (names.get(key) ?? key);
+}
+
 /**
  * Label for a group key. An account shows its credential name, or the raw auth_index when no
  * credential matches, followed by its provider: one email can sign in to several providers.
@@ -400,7 +409,7 @@ export function groupLabel(groupBy: UsageGroupBy, key: string, context: GroupLab
   if (groupBy === 'provider') return providerLabel(key, unknownLabel);
   if (!key) return unknownLabel;
   if (groupBy === 'model') return key;
-  const name = names.get(key) ?? key;
+  const name = accountName(key, names, unknownLabel);
   const provider = providers.get(key);
   return provider === undefined ? name : `${name} · ${providerLabel(provider, unknownLabel)}`;
 }
