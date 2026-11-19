@@ -208,7 +208,8 @@
     "ws_auth_enable": "/ws/* 경로에 인증 요구",
     "routing_strategy_round_robin": "round-robin (순환)",
     "routing_strategy_weighted_round_robin": "weighted-round-robin (가중 순환)",
-    "routing_strategy_fill_first": "fill-first (우선 채우기)"
+    "routing_strategy_fill_first": "fill-first (우선 채우기)",
+    "routing_strategy_pace": "페이스"
   },
   "auth_files": {
     "sync_catalog_button": "모델 카탈로그 동기화",
@@ -1436,6 +1437,7 @@
           "strategy_round_robin": "라운드 로빈",
           "strategy_weighted_round_robin": "가중 라운드 로빈",
           "strategy_fill_first": "채우기 우선",
+          "strategy_pace": "페이스",
           "session_affinity_ttl": "세션 어피니티 TTL",
           "force_model_prefix": "모델 접두사 강제",
           "force_model_prefix_desc": "접두사가 없는 모델 요청은 접두사가 없는 자격 증명만 사용합니다.",
@@ -1752,6 +1754,7 @@
     "strategy_round_robin": "라운드 로빈",
     "strategy_weighted_round_robin": "가중 라운드 로빈",
     "strategy_fill_first": "먼저 채우기",
+    "strategy_pace": "페이스",
     "strategy_round_robin_desc": "계층의 각 자격 증명이 차례로 요청을 받습니다.",
     "strategy_weighted_round_robin_desc": "계층 안에서 가중치 비율로 요청을 나눕니다.",
     "strategy_fill_first_desc": "하나의 자격 증명이 사용할 수 없을 때까지 모두 받고, 그다음으로 넘어갑니다.",
