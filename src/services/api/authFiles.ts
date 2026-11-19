@@ -177,6 +177,13 @@ const readDateField = (entry: AuthFileEntry): number => {
   return 0;
 };
 
+const readSignedInAtField = (entry: AuthFileEntry): number | undefined => {
+  const value = entry['signed_in_at'];
+  if (typeof value !== 'string') return undefined;
+  const parsed = parseTimestampMs(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 const isRuntimeOnlyEntry = (entry: AuthFileEntry): boolean => entry['runtime_only'] === true;
 
 const hasMeaningfulValue = (value: unknown): boolean => {
@@ -278,6 +285,7 @@ const normalizeAuthFileEntry = (
   // Never normalize account/account_type: API-key credentials expose secrets there.
   const projectId = readTextField(entry, 'project_id');
   const modified = readDateField(entry);
+  const signedInAt = readSignedInAtField(entry);
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
   const supportsQuota = readBooleanField(entry['supports_quota'] ?? entry.supportsQuota);
@@ -303,6 +311,7 @@ const normalizeAuthFileEntry = (
     failureCount: normalizeUsageTotal(entry.failed),
     ...(statusMessage ? { statusMessage } : {}),
     ...(modified > 0 ? { modified } : {}),
+    ...(signedInAt !== undefined ? { signedInAt } : {}),
     priority,
     weight,
     ...(note ? { note } : {}),

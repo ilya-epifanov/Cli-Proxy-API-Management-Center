@@ -29,6 +29,7 @@ import {
   type AuthFileQuotaFilter,
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
+import { SignedInAgo } from '@/features/authFiles/components/SignedInAgo';
 import { deriveAuthFileIdentity } from '@/features/authFiles/identity';
 import { resolveAuthFileQuotaType } from '@/features/authFiles/logic';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
@@ -227,6 +228,14 @@ export function AuthFileCard(props: AuthFileCardProps) {
           ·
         </span>
         <span title={t('auth_files.file_modified')}>{formatModified(file)}</span>
+        {file.signedInAt !== undefined && (
+          <>
+            <span className={styles.metaDivider} aria-hidden="true">
+              ·
+            </span>
+            <SignedInAgo signedInAt={file.signedInAt} />
+          </>
+        )}
         {priorityValue !== undefined && (
           <>
             <span className={styles.metaDivider} aria-hidden="true">

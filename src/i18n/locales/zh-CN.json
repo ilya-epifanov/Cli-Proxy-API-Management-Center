@@ -233,6 +233,7 @@
     "search_empty_desc": "请调整筛选条件或清空搜索关键字再试一次。",
     "file_size": "大小",
     "file_modified": "修改时间",
+    "signed_in": "{{when}}登录",
     "card_select": "选择认证文件 {{name}}",
     "card_toggle": "启用认证文件 {{name}}",
     "card_requests": "请求记录",

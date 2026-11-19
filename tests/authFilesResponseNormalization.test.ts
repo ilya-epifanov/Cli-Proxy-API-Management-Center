@@ -42,6 +42,29 @@ describe('auth-files response normalization', () => {
     expect(result.files.map((file) => file.priority)).toEqual([undefined, -3]);
   });
 
+  test('parses signed_in_at into epoch milliseconds', () => {
+    const result = normalizeAuthFilesResponse(
+      responseWithRawFiles([{ name: 'codex-a.json', signed_in_at: '2026-10-20T08:15:00Z' }])
+    );
+
+    expect(result.files[0]?.signedInAt).toBe(Date.parse('2026-10-20T08:15:00Z'));
+  });
+
+  test('leaves signedInAt absent when signed_in_at is missing, empty, or invalid', () => {
+    const result = normalizeAuthFilesResponse(
+      responseWithRawFiles([
+        { name: 'missing.json' },
+        { name: 'empty.json', signed_in_at: '' },
+        { name: 'invalid.json', signed_in_at: 'not a date' },
+        { name: 'numeric.json', signed_in_at: 1760948100 },
+      ])
+    );
+
+    for (const file of result.files) {
+      expect('signedInAt' in file).toBe(false);
+    }
+  });
+
   test('surfaces the trimmed account email', () => {
     const result = normalizeAuthFilesResponse(
       responseWithRawFiles([{ name: 'codex-a.json', email: '  user@example.com  ' }])
