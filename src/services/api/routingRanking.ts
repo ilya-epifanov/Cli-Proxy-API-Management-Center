@@ -8,7 +8,6 @@ import { apiClient } from './client';
 import { ShapeReader } from './responseShape';
 
 export const RANK_CLASSES = ['ready', 'burst_low', 'unknown', 'exhausted'] as const;
-export type RankClass = (typeof RANK_CLASSES)[number];
 
 export const NOT_CANDIDATE_REASONS = ['disabled', 'auth_error', 'cooldown', 'unavailable'] as const;
 export type NotCandidateReason = (typeof NOT_CANDIDATE_REASONS)[number];
@@ -52,21 +51,17 @@ export interface NotCandidate {
 }
 
 export const RUNWAY_REASONS = ['clear', 'short', 'reserve', 'learning'] as const;
-export type RunwayReason = (typeof RUNWAY_REASONS)[number];
-
-/** The operator's speed for a pool, replacing the computed one until cleared. */
-export interface ThrottleOverride {
-  /** Share of full speed, 0 to 1; 1 never delays. */
-  speed: number;
-}
 
 interface RunwayBase {
   /** What each new request for this pool waits now, the override applied; 0 when the throttle is off. */
   delayMs: number;
   /** What a request would wait without the override. */
   computedDelayMs: number;
-  /** null unless the operator set one; reason and speed stay the computed ones. */
-  override: ThrottleOverride | null;
+  /**
+   * The operator's share of full speed, 0 to 1; 1 never delays; null unless the operator set
+   * one. Reason and speed stay the computed ones.
+   */
+  override: number | null;
   /** The longest a request waits; 0 means the throttle is off. */
   maxDelayMs: number;
   /** Short windows not sized yet, left out of the plan. */
@@ -141,34 +136,22 @@ const parseEntry = (value: unknown, path: string): RankEntry => {
   }
 };
 
-const parseSpeed = (value: unknown, path: string): number => {
-  const speed = reader.number(value, path);
-  if (speed < 0 || speed > 1) reader.fail(path, 'a number between 0 and 1');
-  return speed;
-};
-
-const parseOverride = (value: unknown, path: string): ThrottleOverride => {
-  const raw = reader.record(value, path);
-  return {
-    speed: parseSpeed(raw.speed, `${path}.speed`),
-  };
-};
-
 const parseRunway = (value: unknown, path: string): PoolRunway => {
   const raw = reader.record(value, path);
   const base: RunwayBase = {
     delayMs: reader.count(raw.delay_ms, `${path}.delay_ms`),
     computedDelayMs: reader.count(raw.computed_delay_ms, `${path}.computed_delay_ms`),
-    override: reader.nullable(raw.override, (v) => parseOverride(v, `${path}.override`)),
+    override: reader.nullable(raw.override, (v) => {
+      const speedPath = `${path}.override.speed`;
+      const speed = reader.number(reader.record(v, `${path}.override`).speed, speedPath);
+      return speed >= 0 && speed <= 1 ? speed : reader.fail(speedPath, 'a number between 0 and 1');
+    }),
     maxDelayMs: reader.count(raw.max_delay_ms, `${path}.max_delay_ms`),
     unsized: reader.strings(raw.unsized, `${path}.unsized`),
   };
   const reason = reader.oneOf(raw.reason, RUNWAY_REASONS, `${path}.reason`);
   if (reason === 'short') {
-    const dryAt = reader.nullable(raw.dry_at, (v) => reader.instant(v, `${path}.dry_at`));
-    if (dryAt === null)
-      return reader.fail(`${path}.dry_at`, 'a timestamp when the pool runs short');
-    return { ...base, reason, dryAt };
+    return { ...base, reason, dryAt: reader.instant(raw.dry_at, `${path}.dry_at`) };
   }
   return { ...base, reason };
 };

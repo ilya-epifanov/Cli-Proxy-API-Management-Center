@@ -4,12 +4,21 @@
  * ranking model changes. Servers without the pace strategy are never asked.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useVisiblePolling } from '@/hooks/useVisiblePolling';
 import { useServerCapability } from '@/hooks/useServerCapability';
 import { authFilesApi, routingRankingApi, type RoutingRanking } from '@/services/api';
 import { isNotFound } from '@/services/api/apiError';
 import type { Capabilities } from '@/services/api/capabilities';
+import { useNotificationStore } from '@/stores';
+import type { AuthFileItem } from '@/types';
+import { normalizeAuthIndex } from '@/utils/authIndex';
+import { getErrorMessage } from '@/utils/helpers';
+import type { ThrottleOverrideChange } from '../components/QuotaRouting';
+import type { QuotaFileEntry } from '../logic';
+import { routingByAuthIndex } from '../routing';
+import { readQuotaUiState, writeQuotaUiState } from '../uiState';
 
 const RANKING_POLL_MS = 30_000;
 
@@ -87,4 +96,83 @@ export function useClaudeRankingModels(enabled: boolean): string[] {
     };
   }, [enabled]);
   return models;
+}
+
+/**
+ * The Quota page's routing state: the ranking, the per-account lookup, the Claude model the
+ * ranking is for (remembered across visits) and the pool throttle override.
+ * `showRankModel` says whether the page's tab lists Claude accounts, so the model picker applies.
+ */
+export function useQuotaRouting({
+  disabled,
+  files,
+  showRankModel,
+}: {
+  disabled: boolean;
+  files: AuthFileItem[];
+  showRankModel: boolean;
+}) {
+  const { t } = useTranslation();
+  const showNotification = useNotificationStore((state) => state.showNotification);
+  const [claudeRankModel, setClaudeRankModel] = useState<string>(
+    () => readQuotaUiState()?.claudeRankModel ?? ''
+  );
+  const { ranking, reload: reloadRanking } = useRoutingRanking(
+    disabled,
+    claudeRankModel || null,
+    files
+  );
+  const routingByIndex = useMemo(() => routingByAuthIndex(ranking?.pools ?? []), [ranking]);
+  const routingFor = useCallback(
+    (entry: QuotaFileEntry) => {
+      const authIndex = normalizeAuthIndex(entry.file.auth_index ?? entry.file.authIndex);
+      return authIndex ? routingByIndex.get(authIndex) : undefined;
+    },
+    [routingByIndex]
+  );
+  const claudeModels = useClaudeRankingModels(Boolean(ranking));
+  const onThrottleOverride = useCallback<ThrottleOverrideChange>(
+    async (provider, speed) => {
+      try {
+        if (speed === null) await routingRankingApi.clearThrottleOverride(provider);
+        else await routingRankingApi.setThrottleOverride(provider, speed);
+      } catch (err: unknown) {
+        showNotification(
+          t('quota_routing.override_failed', {
+            message: getErrorMessage(err, String(err)),
+          }),
+          'error'
+        );
+      }
+      await reloadRanking();
+    },
+    [reloadRanking, showNotification, t]
+  );
+  const onRankModelChange = useCallback((next: string) => {
+    setClaudeRankModel(next);
+    writeQuotaUiState({ claudeRankModel: next });
+  }, []);
+  const rankModelOptions = useMemo(() => {
+    const models =
+      claudeRankModel && !claudeModels.includes(claudeRankModel)
+        ? [claudeRankModel, ...claudeModels]
+        : claudeModels;
+    return [
+      { value: '', label: t('quota_routing.rank_model_any') },
+      ...models.map((model) => ({ value: model, label: model })),
+    ];
+  }, [claudeModels, claudeRankModel, t]);
+
+  return {
+    ranking,
+    routingFor,
+    rankingShown: routingByIndex.size > 0,
+    rankModel: {
+      show: Boolean(ranking) && showRankModel,
+      value: claudeRankModel,
+      options: rankModelOptions,
+      onChange: onRankModelChange,
+    },
+    onThrottleOverride,
+  };
 }

@@ -34,11 +34,6 @@ const parseUsageStore = (value: unknown): UsageStoreCapability => {
   };
 };
 
-const parseStrategies = (value: unknown): string[] =>
-  reader
-    .array(value, 'strategies')
-    .map((entry, index) => reader.string(entry, `strategies[${index}]`));
-
 /** Parses a 200 response body. */
 export function parseCapabilities(payload: unknown): ForkCapabilities {
   const body = reader.record(payload, 'body');
@@ -47,7 +42,7 @@ export function parseCapabilities(payload: unknown): ForkCapabilities {
     quotaCache:
       body.quota_cache === undefined ? false : reader.boolean(body.quota_cache, 'quota_cache'),
     usageStore: parseUsageStore(body.usage_store),
-    strategies: parseStrategies(body.strategies),
+    strategies: reader.strings(body.strategies, 'strategies'),
   };
 }
 

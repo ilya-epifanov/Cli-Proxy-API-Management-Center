@@ -13,6 +13,7 @@ import type { AuthFileItem } from '@/types';
 import type { QuotaTabId } from '../constants';
 import { poolRunwayLines, routingNotes, routingRankTitle, type CardRouting } from '../routing';
 import styles from './QuotaCard.module.scss';
+import routingStyles from './QuotaRouting.module.scss';
 
 /** `#2/5`, highlighted when a new session may land on this account. */
 export function RoutingRank({ routing }: { routing: CardRouting }) {
@@ -39,11 +40,11 @@ export function RoutingNotes({ routing, file }: { routing: CardRouting; file: Au
   const { t, i18n } = useTranslation();
   const now = useNow();
   return (
-    <div className={styles.routingLines}>
+    <div className={routingStyles.routingLines}>
       {routingNotes(t, routing, file, now, i18n.language).map((note) => (
         <p
           key={note.text}
-          className={`${styles.routingLine} ${note.warn ? styles.routingLineWarn : ''}`}
+          className={`${routingStyles.routingLine} ${note.warn ? routingStyles.routingLineWarn : ''}`}
           title={note.title}
         >
           {note.text}
@@ -78,9 +79,9 @@ export function PoolRunwayLines({
   return (
     <div className={className}>
       {lines.map((line) => (
-        <div key={line.provider} className={styles.runwayRow}>
+        <div key={line.provider} className={routingStyles.runwayRow}>
           <p
-            className={`${styles.routingLine} ${line.warn ? styles.routingLineWarn : ''}`}
+            className={`${routingStyles.routingLine} ${line.warn ? routingStyles.routingLineWarn : ''}`}
             title={line.title}
           >
             {line.text}
@@ -131,7 +132,7 @@ function ThrottleOverrideControl({
   };
   const percent = override === null ? null : Math.round(override * 100);
   return (
-    <div className={styles.throttleOverride}>
+    <div className={routingStyles.throttleOverride}>
       {percent !== null && (
         // Keyed by the server's value, so the field follows it after every change. It sits
         // before the switch, so the switches of all pools stay in one column.
@@ -173,9 +174,9 @@ function OverrideSpeedForm({
     if (valid && next !== percent) onApply(next);
   };
   return (
-    <form className={styles.overrideForm} onSubmit={submit}>
+    <form className={routingStyles.overrideForm} onSubmit={submit}>
       <input
-        className={`input ${styles.overrideInput}`}
+        className={`input ${routingStyles.overrideInput}`}
         type="number"
         min={0}
         max={100}
@@ -190,7 +191,7 @@ function OverrideSpeedForm({
         type="submit"
         size="sm"
         variant="secondary"
-        className={styles.overrideApply}
+        className={routingStyles.overrideApply}
         disabled={busy || !valid || next === percent}
       >
         {t('quota_routing.override_apply')}

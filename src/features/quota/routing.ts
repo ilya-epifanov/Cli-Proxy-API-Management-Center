@@ -202,16 +202,14 @@ export function poolRunwayLines(
     const parts = [runwayStatus(t, runway, provider, nowMs, locale)];
     if (!overridable) parts.push(t('quota_routing.runway_throttle_off'));
     else {
-      if (override)
-        parts.push(
-          t('quota_routing.runway_override', { percent: Math.round(override.speed * 100) })
-        );
+      if (override !== null)
+        parts.push(t('quota_routing.runway_override', { percent: Math.round(override * 100) }));
       parts.push(
         slowed
           ? t('quota_routing.runway_slowed', { seconds: seconds(runway.delayMs) })
           : t('quota_routing.runway_no_delay')
       );
-      if (override && runway.computedDelayMs !== runway.delayMs)
+      if (override !== null && runway.computedDelayMs !== runway.delayMs)
         parts.push(
           runway.computedDelayMs > 0
             ? t('quota_routing.runway_computed_slowed', {
@@ -232,7 +230,7 @@ export function poolRunwayLines(
         title: t('quota_routing.runway_title'),
         warn:
           slowed || (overridable && override !== null && runway.computedDelayMs > runway.delayMs),
-        override: override?.speed ?? null,
+        override,
         overridable,
       },
     ];

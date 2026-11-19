@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authFilesApi, routingRankingApi } from '@/services/api';
+import { authFilesApi } from '@/services/api';
 import { Button } from '@/components/ui/Button';
 import { CardLayoutSwitch } from '@/components/ui/CardLayoutSwitch';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -22,15 +22,13 @@ import { readCardLayout, writeCardLayout, type CardLayout } from '@/components/u
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useNow } from '@/hooks/useNow';
 import { useRevealGroup } from '@/hooks/motion';
-import { useAuthStore, useNotificationStore, useQuotaStore, useThemeStore } from '@/stores';
+import { useAuthStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
-import { normalizeAuthIndex } from '@/utils/authIndex';
-import { getErrorMessage } from '@/utils/helpers';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaCard } from './components/QuotaCard';
-import { PoolRunwayLines, type ThrottleOverrideChange } from './components/QuotaRouting';
+import { PoolRunwayLines } from './components/QuotaRouting';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import {
   CARD_ENTRANCE_BUDGET_MS,
@@ -64,8 +62,8 @@ import { useDevinQuotaAutoLoad } from './providers/devin/useDevinQuotaAutoLoad';
 import { useQuotaActions } from './hooks/useQuotaActions';
 import { useQuotaBatchLoader } from './hooks/useQuotaBatchLoader';
 import { useServerQuotaAutoLoad } from './hooks/useServerQuotaAutoLoad';
-import { useClaudeRankingModels, useRoutingRanking } from './hooks/useRoutingRanking';
-import { routingByAuthIndex, routingSortKey } from './routing';
+import { useQuotaRouting } from './hooks/useRoutingRanking';
+import { routingSortKey } from './routing';
 import { readQuotaUiState, writeQuotaUiState } from './uiState';
 import styles from './QuotaPage.module.scss';
 
@@ -80,7 +78,6 @@ const displayNameFor = (name: string) => name;
 
 export function QuotaPage() {
   const { t } = useTranslation();
-  const showNotification = useNotificationStore((state) => state.showNotification);
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const resolvedTheme: ResolvedTheme = useThemeStore((state) => state.resolvedTheme);
 
@@ -90,9 +87,6 @@ export function QuotaPage() {
   const [tab, setTab] = useState<QuotaTabId>(() => readQuotaUiState()?.tab ?? 'all');
   const [sortMode, setSortMode] = useState<QuotaSortMode>(
     () => readQuotaUiState()?.sortMode ?? 'default'
-  );
-  const [claudeRankModel, setClaudeRankModel] = useState<string>(
-    () => readQuotaUiState()?.claudeRankModel ?? ''
   );
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -188,42 +182,6 @@ export function QuotaPage() {
     [quotaByType]
   );
 
-  /* ---------- 路由排名 ----------
-   * The pace selector's ranking, shown on Claude and Codex cards and usable as a sort. */
-
-  const { ranking, reload: reloadRanking } = useRoutingRanking(
-    connectionStatus !== 'connected' || loading || Boolean(error),
-    claudeRankModel || null,
-    files
-  );
-  const routingByIndex = useMemo(() => routingByAuthIndex(ranking?.pools ?? []), [ranking]);
-  const rankingShown = routingByIndex.size > 0;
-  const routingFor = useCallback(
-    (entry: QuotaFileEntry) => {
-      const authIndex = normalizeAuthIndex(entry.file.auth_index ?? entry.file.authIndex);
-      return authIndex ? routingByIndex.get(authIndex) : undefined;
-    },
-    [routingByIndex]
-  );
-  const claudeModels = useClaudeRankingModels(Boolean(ranking));
-  const handleThrottleOverride = useCallback<ThrottleOverrideChange>(
-    async (provider, speed) => {
-      try {
-        if (speed === null) await routingRankingApi.clearThrottleOverride(provider);
-        else await routingRankingApi.setThrottleOverride(provider, speed);
-      } catch (err: unknown) {
-        showNotification(
-          t('quota_routing.override_failed', {
-            message: getErrorMessage(err, String(err)),
-          }),
-          'error'
-        );
-      }
-      await reloadRanking();
-    },
-    [reloadRanking, showNotification, t]
-  );
-
   /* ---------- 归类 / 过滤 / 排序 / 分页 ---------- */
 
   // 只在「最快恢复优先」下订阅分钟时钟。默认序下不门控的话，pageItems 每分钟
@@ -233,6 +191,15 @@ export function QuotaPage() {
 
   const entries = useMemo(() => classifyQuotaFiles(files), [files]);
   const tabCounts = useMemo(() => buildTabCounts(entries), [entries]);
+
+  /* ---------- 路由排名 ----------
+   * The pace selector's ranking, shown on Claude and Codex cards and usable as a sort. */
+
+  const { ranking, routingFor, rankingShown, rankModel, onThrottleOverride } = useQuotaRouting({
+    disabled: connectionStatus !== 'connected' || loading || Boolean(error),
+    files,
+    showRankModel: (tab === 'all' || tab === 'claude') && (tabCounts.claude ?? 0) > 0,
+  });
   // Account-level settings span every page and tab, so count over all entries.
   const codexCreditOverageCounts = useMemo(
     () =>
@@ -253,12 +220,14 @@ export function QuotaPage() {
   // Without a ranking the routing sort falls back to the default order.
   const effectiveSortMode: QuotaSortMode =
     sortMode === 'routing' && !rankingShown ? 'default' : sortMode;
+  // Only the routing sort reads the ranking; gating it keeps ranking polls from re-sorting other modes.
+  const sortRoutingFor = effectiveSortMode === 'routing' ? routingFor : null;
   const resolveSortKey = useCallback(
     (entry: QuotaFileEntry) =>
-      effectiveSortMode === 'routing'
-        ? routingSortKey(entry, routingFor(entry))
+      sortRoutingFor
+        ? routingSortKey(entry, sortRoutingFor(entry))
         : nextRecoveryMs(entry.type, getQuota(entry), sortNow),
-    [effectiveSortMode, getQuota, routingFor, sortNow]
+    [getQuota, sortNow, sortRoutingFor]
   );
   // 排序在分页之前：否则「最快恢复」只在当前页内成立。
   const sortedEntries = useMemo(
@@ -304,24 +273,6 @@ export function QuotaPage() {
       })),
     [rankingShown, t]
   );
-
-  const handleClaudeRankModelChange = useCallback((next: string) => {
-    setClaudeRankModel(next);
-    writeQuotaUiState({ claudeRankModel: next });
-  }, []);
-
-  const showClaudeRankModel =
-    Boolean(ranking) && (tab === 'all' || tab === 'claude') && (tabCounts.claude ?? 0) > 0;
-  const claudeRankModelOptions = useMemo(() => {
-    const models =
-      claudeRankModel && !claudeModels.includes(claudeRankModel)
-        ? [claudeRankModel, ...claudeModels]
-        : claudeModels;
-    return [
-      { value: '', label: t('quota_routing.rank_model_any') },
-      ...models.map((model) => ({ value: model, label: model })),
-    ];
-  }, [claudeModels, claudeRankModel, t]);
 
   const { loadedCount, attentionCount } = useMemo(() => {
     let loaded = 0;
@@ -512,16 +463,16 @@ export function QuotaPage() {
             )}
           </div>
           <div className={styles.viewControls}>
-            {showClaudeRankModel && (
+            {rankModel.show && (
               <div className={styles.rankModel}>
                 <span id="quota-claude-rank-model" className={styles.rankModelLabel}>
                   {t('quota_routing.rank_model_prefix')}
                 </span>
                 <div className={`${styles.sort} ${styles.rankModelSelect}`}>
                   <Select
-                    value={claudeRankModel}
-                    options={claudeRankModelOptions}
-                    onChange={handleClaudeRankModelChange}
+                    value={rankModel.value}
+                    options={rankModel.options}
+                    onChange={rankModel.onChange}
                     ariaLabelledBy="quota-claude-rank-model"
                     size="sm"
                   />
@@ -546,7 +497,7 @@ export function QuotaPage() {
             pools={ranking.pools}
             tab={tab}
             className={styles.poolRunway}
-            onOverride={handleThrottleOverride}
+            onOverride={onThrottleOverride}
           />
         )}
 

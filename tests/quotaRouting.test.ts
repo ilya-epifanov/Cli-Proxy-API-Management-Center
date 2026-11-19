@@ -331,7 +331,7 @@ describe('runway parsing', () => {
       reason: 'short',
       delayMs: 0,
       computedDelayMs: 6542,
-      override: { speed: 1 },
+      override: 1,
     });
   });
 
