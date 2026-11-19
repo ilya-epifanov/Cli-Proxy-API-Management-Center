@@ -1,7 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { getAuthFileRefreshKey } from '@/features/authFiles/manualRefresh';
 import { useTranslation } from 'react-i18next';
-import { useNow } from '@/hooks/useNow';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
@@ -30,7 +29,7 @@ import {
   type AuthFileQuotaFilter,
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
-import { formatSignedInAgo } from '@/features/authFiles/signedInAgo';
+import { SignedInAgo } from '@/features/authFiles/components/SignedInAgo';
 import { deriveAuthFileIdentity } from '@/features/authFiles/identity';
 import { resolveAuthFileQuotaType } from '@/features/authFiles/logic';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
@@ -120,15 +119,6 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const siwcExpires = file.siwcExpiresAt
     ? formatDateTimeValue(file.siwcExpiresAt, i18n.language)
     : '';
-
-  const signedInAt = file.signedInAt;
-  const now = useNow(signedInAt !== undefined);
-  const signedInLabel =
-    signedInAt === undefined
-      ? ''
-      : t('auth_files.signed_in', {
-          when: formatSignedInAgo(signedInAt, now, i18n.language),
-        });
 
   // Capture the entrance delay once so subsequent updates do not interrupt it.
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
@@ -238,12 +228,12 @@ export function AuthFileCard(props: AuthFileCardProps) {
           ·
         </span>
         <span title={t('auth_files.file_modified')}>{formatModified(file)}</span>
-        {signedInAt !== undefined && (
+        {file.signedInAt !== undefined && (
           <>
             <span className={styles.metaDivider} aria-hidden="true">
               ·
             </span>
-            <span title={new Date(signedInAt).toLocaleString(i18n.language)}>{signedInLabel}</span>
+            <SignedInAgo signedInAt={file.signedInAt} />
           </>
         )}
         {priorityValue !== undefined && (
