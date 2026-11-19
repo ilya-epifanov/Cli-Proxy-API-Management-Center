@@ -69,6 +69,8 @@ export interface AuthFileItem {
   statusMessage?: string;
   lastRefresh?: string | number;
   modified?: number;
+  /** Last interactive OAuth sign-in, epoch ms. Absent on older credential files. */
+  signedInAt?: number;
   priority?: number;
   weight?: number;
   note?: string;

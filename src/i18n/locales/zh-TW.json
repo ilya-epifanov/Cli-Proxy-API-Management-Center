@@ -230,6 +230,7 @@
     "search_empty_desc": "請調整篩選條件或清空搜尋關鍵字再試一次。",
     "file_size": "大小",
     "file_modified": "修改時間",
+    "signed_in": "{{when}}登入",
     "card_select": "選取驗證檔案 {{name}}",
     "card_toggle": "啟用驗證檔案 {{name}}",
     "card_requests": "請求記錄",

@@ -230,6 +230,7 @@
     "search_empty_desc": "Süzgeçleri Değiştirmeyi veya Arama Kutusunu Temizlemeyi Dene.",
     "file_size": "Boyut",
     "file_modified": "Değiştirilme",
+    "signed_in": "Oturum açıldı: {{when}}",
     "card_select": "{{name}} Kimlik Bilgisini Seç",
     "card_toggle": "{{name}} Kimlik Bilgisini Etkinleştir",
     "card_requests": "İstekler",
