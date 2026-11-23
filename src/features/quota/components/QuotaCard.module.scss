@@ -167,6 +167,12 @@
   font-size: 11.5px;
   color: var(--text-secondary);
   cursor: pointer;
+  /* Native checkbox chrome follows the theme: unchecked is otherwise a white square on dark cards. */
+  color-scheme: light;
+
+  :global([data-theme='dark']) & {
+    color-scheme: dark;
+  }
 
   input {
     margin: 0;
