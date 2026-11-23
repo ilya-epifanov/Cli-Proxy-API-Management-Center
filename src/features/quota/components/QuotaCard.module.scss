@@ -157,6 +157,33 @@
   margin-left: 0;
 }
 
+/* Drain checkbox before the chip; it takes over the chip's push to the row's end. */
+.routingDrain {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input {
+    margin: 0;
+    accent-color: var(--text-primary);
+    cursor: inherit;
+  }
+
+  &:has(input:disabled) {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.routingDrain + .routingRank {
+  margin-left: 0;
+}
+
 /* Solid ink, as the page's primary action: the theme's emphasis is ink, not hue. */
 .routingRankNext {
   border-color: var(--text-primary);

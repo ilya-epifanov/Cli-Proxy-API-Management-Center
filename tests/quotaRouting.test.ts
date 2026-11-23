@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
@@ -14,7 +14,13 @@ import {
   routingSortKey,
   type CardRouting,
 } from '@/features/quota/routing';
-import { parseRoutingRanking, ResponseShapeError, type RankEntry } from '@/services/api';
+import {
+  parseRoutingRanking,
+  ResponseShapeError,
+  routingRankingApi,
+  type RankEntry,
+} from '@/services/api';
+import { apiClient } from '@/services/api/client';
 import type { AuthFileItem } from '@/types';
 import { DAY_MS } from '@/utils/time/durations';
 
@@ -69,6 +75,7 @@ describe('parseRoutingRanking', () => {
       rank: 1,
       topBand: true,
       stale: false,
+      drain: false,
       class: 'ready',
       pace: 3.724,
       paceWindow: 'seven-day-fable',
@@ -108,6 +115,53 @@ describe('parseRoutingRanking', () => {
     expect(() => parseRoutingRanking(wire([wireEntry({ pace: null })]))).toThrow(
       ResponseShapeError
     );
+  });
+});
+
+describe('drain flag', () => {
+  const drainOf = (entry: Record<string, unknown>) =>
+    parseRoutingRanking(wire([entry])).pools[0].entries[0].drain;
+
+  test('is read when present', () => {
+    expect(drainOf(wireEntry({ drain: true }))).toBe(true);
+    expect(drainOf(wireEntry({ drain: false }))).toBe(false);
+  });
+
+  test('defaults to false for a server that omits it', () => {
+    expect(drainOf(wireEntry())).toBe(false);
+  });
+
+  test('rejects a value that is not a boolean', () => {
+    expect(() => drainOf(wireEntry({ drain: 'yes' }))).toThrow(ResponseShapeError);
+    expect(() => drainOf(wireEntry({ drain: null }))).toThrow(ResponseShapeError);
+  });
+});
+
+describe('routingRankingApi.setDrain', () => {
+  const originalPut = apiClient.put;
+  afterEach(() => {
+    apiClient.put = originalPut;
+  });
+
+  test('PUTs the flag to the account, with the index escaped', async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    apiClient.put = (async (url: string, body: unknown) => {
+      calls.push({ url, body });
+      return { auth_index: 'a/b', drain: true };
+    }) as typeof apiClient.put;
+    await routingRankingApi.setDrain('a/b', true);
+    await routingRankingApi.setDrain('c1', false);
+    expect(calls).toEqual([
+      { url: '/routing/drain/a%2Fb', body: { drain: true } },
+      { url: '/routing/drain/c1', body: { drain: false } },
+    ]);
+  });
+
+  test('lets a failed request reach the caller', async () => {
+    apiClient.put = (async () => {
+      throw new Error('unknown auth_index');
+    }) as typeof apiClient.put;
+    await expect(routingRankingApi.setDrain('zz', true)).rejects.toThrow('unknown auth_index');
   });
 });
 

@@ -1598,6 +1598,8 @@
     "override_speed_label": "Tốc độ nhóm {{provider}}, % so với tốc độ tối đa",
     "override_apply": "Áp dụng",
     "override_failed": "Không thể thay đổi tốc độ thủ công: {{message}}",
+    "drain": "Dùng hết",
+    "drain_failed": "Không thể thay đổi cờ dùng hết: {{message}}",
     "runway_title": "Quãng chạy: nhu cầu dự báo (giờ qua, ngày qua, tuần qua) được chi từ các tài khoản có cửa sổ tuần đặt lại sớm nhất, bị giới hạn bởi từng cửa sổ 5 giờ, trong 7 ngày tới. Quota của mỗi tài khoản được ước tính từ lượng đã dùng kể từ khi cửa sổ của nó bắt đầu. Yêu cầu chỉ bị làm chậm vừa đủ để nhóm không cạn; và nếu, theo tốc độ tiêu hao mà các lần đọc quota cho thấy, phần còn lại của các tài khoản có thể phục vụ lúc này sẽ cạn trước khi được nạp lại (xét tối đa 12 giờ tới), yêu cầu sẽ chậm lại cho đến khi đủ dùng."
   },
   "quota_management": {

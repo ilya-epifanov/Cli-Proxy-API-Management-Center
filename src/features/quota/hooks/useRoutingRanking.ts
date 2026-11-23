@@ -15,7 +15,7 @@ import { useNotificationStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import { getErrorMessage } from '@/utils/helpers';
-import type { ThrottleOverrideChange } from '../components/QuotaRouting';
+import type { DrainChange, ThrottleOverrideChange } from '../components/QuotaRouting';
 import type { QuotaFileEntry } from '../logic';
 import { routingByAuthIndex } from '../routing';
 import { readQuotaUiState, writeQuotaUiState } from '../uiState';
@@ -148,6 +148,20 @@ export function useQuotaRouting({
     },
     [reloadRanking, showNotification, t]
   );
+  const onDrainChange = useCallback<DrainChange>(
+    async (authIndex, drain) => {
+      try {
+        await routingRankingApi.setDrain(authIndex, drain);
+      } catch (err: unknown) {
+        showNotification(
+          t('quota_routing.drain_failed', { message: getErrorMessage(err, String(err)) }),
+          'error'
+        );
+      }
+      await reloadRanking();
+    },
+    [reloadRanking, showNotification, t]
+  );
   const onRankModelChange = useCallback((next: string) => {
     setClaudeRankModel(next);
     writeQuotaUiState({ claudeRankModel: next });
@@ -174,5 +188,6 @@ export function useQuotaRouting({
       onChange: onRankModelChange,
     },
     onThrottleOverride,
+    onDrainChange,
   };
 }
