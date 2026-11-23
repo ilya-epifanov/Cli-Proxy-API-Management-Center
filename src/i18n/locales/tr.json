@@ -1645,6 +1645,8 @@
     "override_speed_label": "{{provider}} havuzu hızı, tam hızın %'si",
     "override_apply": "Uygula",
     "override_failed": "Elle ayarlanan hız değiştirilemedi: {{message}}",
+    "drain": "Boşalt",
+    "drain_failed": "Boşaltma işareti değiştirilemedi: {{message}}",
     "runway_title": "Dayanma süresi: tahmini talep (son saat, son gün, son hafta) önümüzdeki 7 gün boyunca, haftalık penceresi ilk sıfırlanan hesaplardan harcanır; her 5 saatlik pencere bunu sınırlar. Her hesabın kotası, penceresi başladığından beri harcadığı kullanımdan ölçülür. İstekler yalnızca havuzun tükenmesini önleyecek kadar yavaşlatılır. Ayrıca kota okumalarının gösterdiği tükenme hızıyla, şu anda hizmet verebilen hesaplardaki kota yenilenmeden önce tükenecekse (en fazla 12 saat ileriye bakılır), istekler kota yetene kadar yavaşlatılır."
   },
   "quota_management": {

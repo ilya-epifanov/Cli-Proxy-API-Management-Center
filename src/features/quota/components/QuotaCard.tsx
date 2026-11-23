@@ -28,7 +28,7 @@ import { useCodexCreditOverage } from '../providers/codex/useCodexCreditOverage'
 import { refreshedAtOf } from '../serverQuota';
 import type { CardRouting } from '../routing';
 import { RefreshedAgo } from './RefreshedAgo';
-import { RoutingNotes, RoutingRank } from './QuotaRouting';
+import { RoutingDrain, RoutingNotes, RoutingRank, type DrainChange } from './QuotaRouting';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaCard.module.scss';
 
@@ -43,6 +43,8 @@ export type QuotaCardProps = {
   resetting: boolean;
   /** The pace selector's rank for this account; absent when the server does not rank. */
   routing?: CardRouting;
+  /** Flags this account to drain; the checkbox shows with `routing`, on full cards. */
+  onDrainChange?: DrainChange;
   /** Initial cascade delay; null disables entrance motion for later mounts. */
   entranceDelayMs?: number | null;
   /**
@@ -65,6 +67,7 @@ export function QuotaCard(props: QuotaCardProps) {
     canRefresh,
     resetting,
     routing,
+    onDrainChange,
     entranceDelayMs,
     glance,
     onToggleGlance,
@@ -175,6 +178,9 @@ export function QuotaCard(props: QuotaCardProps) {
         <span className={styles.fileName} title={displayName}>
           {displayName}
         </span>
+        {routing && !glance && onDrainChange && (
+          <RoutingDrain routing={routing} onChange={onDrainChange} />
+        )}
         {routing && <RoutingRank routing={routing} />}
         {glance !== undefined && (
           <button

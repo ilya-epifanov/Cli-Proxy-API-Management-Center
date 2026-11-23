@@ -19,6 +19,8 @@ interface RankBase {
   /** A new session picks one top-band account at random. */
   topBand: boolean;
   stale: boolean;
+  /** The operator flagged the account to be used first; the server clears it when the account's longest window is used up. */
+  drain: boolean;
 }
 
 export type RankEntry = RankBase &
@@ -109,6 +111,8 @@ const parseEntry = (value: unknown, path: string): RankEntry => {
     rank: reader.count(raw.rank, `${path}.rank`),
     topBand: reader.boolean(raw.top_band, `${path}.top_band`),
     stale: reader.boolean(raw.stale, `${path}.stale`),
+    // Servers from before draining omit the field.
+    drain: raw.drain === undefined ? false : reader.boolean(raw.drain, `${path}.drain`),
   };
   const rankClass = reader.oneOf(raw.class, RANK_CLASSES, `${path}.class`);
   switch (rankClass) {
@@ -196,6 +200,11 @@ export const routingRankingApi = {
   /** Runs `provider`'s pool at `speed` (0 to 1) until cleared, whatever its runway says. */
   async setThrottleOverride(provider: string, speed: number): Promise<void> {
     await apiClient.put(`/routing/throttle/overrides/${encodeURIComponent(provider)}`, { speed });
+  },
+
+  /** Flags the account to be used first (or unflags it); the server clears the flag itself. */
+  async setDrain(authIndex: string, drain: boolean): Promise<void> {
+    await apiClient.put(`/routing/drain/${encodeURIComponent(authIndex)}`, { drain });
   },
 
   /** Returns `provider`'s pool to the computed throttle. */

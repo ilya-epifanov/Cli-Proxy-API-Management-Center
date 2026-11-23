@@ -195,11 +195,12 @@ export function QuotaPage() {
   /* ---------- 路由排名 ----------
    * The pace selector's ranking, shown on Claude and Codex cards and usable as a sort. */
 
-  const { ranking, routingFor, rankingShown, rankModel, onThrottleOverride } = useQuotaRouting({
-    disabled: connectionStatus !== 'connected' || loading || Boolean(error),
-    files,
-    showRankModel: (tab === 'all' || tab === 'claude') && (tabCounts.claude ?? 0) > 0,
-  });
+  const { ranking, routingFor, rankingShown, rankModel, onThrottleOverride, onDrainChange } =
+    useQuotaRouting({
+      disabled: connectionStatus !== 'connected' || loading || Boolean(error),
+      files,
+      showRankModel: (tab === 'all' || tab === 'claude') && (tabCounts.claude ?? 0) > 0,
+    });
   // Account-level settings span every page and tab, so count over all entries.
   const codexCreditOverageCounts = useMemo(
     () =>
@@ -396,6 +397,7 @@ export function QuotaPage() {
         canRefresh={canUseActions && !entry.file.disabled}
         resetting={resettingQuotaName === getQuotaCacheKey(entry.file)}
         routing={routingFor(entry)}
+        onDrainChange={onDrainChange}
         entranceDelayMs={cardEntranceDelay(index)}
         creditOverageSharedCount={
           entry.type === 'codex'

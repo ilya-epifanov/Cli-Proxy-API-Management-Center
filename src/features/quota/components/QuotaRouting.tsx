@@ -1,6 +1,6 @@
 /**
  * Routing on a Quota card: where the pace selector ranks the account for new sessions and why.
- * The rank chip sits in the card header; the routing notes sit under it.
+ * The drain checkbox and rank chip sit in the card header; the routing notes sit under it.
  */
 
 import { useRef, useState, type FormEvent } from 'react';
@@ -32,6 +32,42 @@ export function RoutingRank({ routing }: { routing: CardRouting }) {
         /{poolSize}
       </span>
     </span>
+  );
+}
+
+/** Flags or unflags an account to be used first. */
+export type DrainChange = (authIndex: string, drain: boolean) => Promise<void>;
+
+/** The checkbox follows the ranking: the server clears the flag when the account runs out. */
+export function RoutingDrain({
+  routing,
+  onChange,
+}: {
+  routing: CardRouting;
+  onChange: DrainChange;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  if (routing.tag !== 'ranked') return null;
+  const { authIndex, drain } = routing.entry;
+  const change = async (next: boolean) => {
+    setBusy(true);
+    try {
+      await onChange(authIndex, next);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <label className={styles.routingDrain}>
+      <input
+        type="checkbox"
+        checked={drain}
+        disabled={busy}
+        onChange={(event) => void change(event.target.checked)}
+      />
+      {t('quota_routing.drain')}
+    </label>
   );
 }
 
